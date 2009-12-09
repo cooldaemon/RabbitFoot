@@ -1,0 +1,8 @@
+[TestingAndDebugging::ProhibitNoStrict]
+allow=refs
+
+[TestingAndDebugging::RequireUseStrict]
+equivalent_modules = Any::Moose Moose Mouse
+
+[TestingAndDebugging::RequireUseWarnings]
+equivalent_modules = Any::Moose Moose Mouse
