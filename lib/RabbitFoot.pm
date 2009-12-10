@@ -443,15 +443,53 @@ sub cancel {
 }
 
 sub poll {
-    my ($self, $args) = @_;
+    my ($self, $args,) = @_;
 
     my $timeout = $args && $args->{timeout} ? $args->{timeout} : 'infinite';
-    $self->_read_and_valid('Basic::Deliver', $timeout);
+    return {
+        deliver => $self->_read_and_valid('Basic::Deliver', $timeout),
+        header  => $self->_read_header_and_valid(),
+        body    => $self->_read_body_and_valid(),
+    };
+}
+
+sub get {
+    my ($self, $args,) = @_;
+
+    my $frame = $self->_post_and_read(
+        'Basic::Get',
+        {
+            no_ack => 1,
+            %$args, # queue
+            ticket => 0,
+        },
+        [qw(Basic::GetOk Basic::GetEmpty)], 
+        1,
+    );
+
+    return $frame
+        if $frame->method_frame->isa('Net::AMQP::Protocol::Basic::GetEmpty');
 
     return {
+        getok  => $frame,
         header => $self->_read_header_and_valid(),
         body   => $self->_read_body_and_valid(),
     };
+}
+
+sub ack {
+    my ($self, $args,) = @_;
+
+    $self->_post(
+        Net::AMQP::Protocol::Basic::Ack->new(
+            delivery_tag => 0,
+            multiple     => (
+                defined $args->{delivery_tag} && $args->{delivery_tag} != 0 ? 0 : 1
+            ),
+            %$args,
+        ),
+        1,
+    );
 }
 
 sub _post_and_read {
@@ -469,17 +507,21 @@ sub _post_and_read {
 
 sub _read_and_valid {
     my ($self, $exp, $timeout,) = @_;
+    $exp = ref($exp) eq 'ARRAY' ? $exp : [$exp];
 
     my ($frame) = $self->_read($timeout);
     die 'Received data is not method frame', "\n"
         if !$frame->isa('Net::AMQP::Frame::Method');
 
     my $method_frame = $frame->method_frame;
-    return $frame if $method_frame->isa('Net::AMQP::Protocol::' . $exp);
+    for my $exp_elem (@$exp) {
+        return $frame if $method_frame->isa('Net::AMQP::Protocol::' . $exp_elem);
+    }
 
     $self->_check_close_and_clean($frame);
-    die 'Method is not ', $exp, "\n", 'Method was ', ref $method_frame, "\n"
-        if !$method_frame->isa('Net::AMQP::Protocol::Connection::Close');
+    die 'Method is not ', join(',', @$exp), "\n",
+        'Method was ', ref $method_frame, "\n"
+            if !$method_frame->isa('Net::AMQP::Protocol::Connection::Close');
 }
 
 sub _read_header_and_valid {
@@ -639,7 +681,7 @@ You can use RabbitFoot to -
 
   * Declare and delete exchanges
   * Declare, delete and bind queues
-  * Publish and consume messages
+  * Publish, consume, get and ack messages
 
 RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
 
