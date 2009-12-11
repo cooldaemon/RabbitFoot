@@ -490,6 +490,36 @@ sub ack {
         ),
         1,
     );
+    return;
+}
+
+sub qos {
+    my ($self, $args,) = @_;
+
+    return $self->_post_and_read(
+        'Basic::Qos',
+        {
+            prefetch_count => 1,
+            %$args,
+            prefetch_size  => 0,
+            global         => 0,
+        },
+        'Basic::QosOk', 
+        1,
+    );
+}
+
+sub recover {
+    my ($self, $args,) = @_;
+
+    $self->_post(
+        Net::AMQP::Protocol::Basic::Recover->new(
+            requeue => 0,
+            %$args,
+        ),
+        1,
+    );
+    return;
 }
 
 sub _post_and_read {
@@ -681,7 +711,8 @@ You can use RabbitFoot to -
 
   * Declare and delete exchanges
   * Declare, delete and bind queues
-  * Publish, consume, get and ack messages
+  * Set QoS
+  * Publish, consume, get, ack and recover messages
 
 RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
 

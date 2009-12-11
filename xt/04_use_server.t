@@ -21,7 +21,7 @@ eval {
 
 plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
-plan tests => 17;
+plan tests => 19;
 
 use RabbitFoot;
 
@@ -99,6 +99,48 @@ lives_ok sub {
         delivery_tag => $response->{getok}->method_frame->delivery_tag,
     });
 }, 'ack get';
+
+lives_ok sub {
+    publish($rf, 'RabbitMQ is excellent.');
+    publish($rf, 'RabbitMQ is fantastic.');
+    $rf->qos({prefetch_count => 2});
+
+    $rf->consume({
+        queue  => 'test_q',
+        no_ack => 0,
+    });
+ 
+    my @responses = map {$rf->poll({timeout => 1})} (1, 2);
+    for my $response (@responses) {
+        $rf->ack({
+            delivery_tag => $response->{deliver}->method_frame->delivery_tag,
+        });
+    }
+
+    $rf->cancel();
+    $rf->qos({});
+}, 'qos';
+
+lives_ok sub {
+    publish($rf, 'RabbitMQ is powerful.');
+
+    $rf->consume({
+        queue  => 'test_q',
+        no_ack => 0,
+    });
+ 
+    for (1..5) {
+        my $response = $rf->poll({timeout => 1});
+        $rf->recover({});
+    }
+
+    my $response = $rf->poll({timeout => 1});
+    $rf->ack({
+        delivery_tag => $response->{deliver}->method_frame->delivery_tag,
+    });
+
+    $rf->cancel();
+}, 'recover';
 
 lives_ok sub {
     $rf->purge_queue({queue => 'test_q'});
