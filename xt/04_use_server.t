@@ -21,7 +21,7 @@ eval {
 
 plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
-plan tests => 19;
+plan tests => 22;
 
 use RabbitFoot;
 
@@ -141,6 +141,20 @@ lives_ok sub {
 
     $rf->cancel();
 }, 'recover';
+
+lives_ok sub {
+    $rf->select_tx();
+}, 'select_tx';
+
+lives_ok sub {
+    publish($rf, 'RabbitMQ is highly reliable systems.');
+    $rf->rollback_tx();
+}, 'rollback_tx';
+
+lives_ok sub {
+    publish($rf, 'RabbitMQ is highly reliable systems.');
+    $rf->commit_tx();
+}, 'commit_tx';
 
 lives_ok sub {
     $rf->purge_queue({queue => 'test_q'});

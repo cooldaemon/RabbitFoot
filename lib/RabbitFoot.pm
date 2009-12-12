@@ -522,6 +522,21 @@ sub recover {
     return;
 }
 
+sub select_tx {
+    my ($self,) = @_;
+    return $self->_post_and_read('Tx::Select', {}, 'Tx::SelectOk', 1,);
+}
+
+sub commit_tx {
+    my ($self,) = @_;
+    return $self->_post_and_read('Tx::Commit', {}, 'Tx::CommitOk', 1,);
+}
+
+sub rollback_tx {
+    my ($self,) = @_;
+    return $self->_post_and_read('Tx::Rollback', {}, 'Tx::RollbackOk', 1,);
+}
+
 sub _post_and_read {
     my ($self, $method, $args, $exp, $id,) = @_;
 
