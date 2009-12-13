@@ -22,6 +22,12 @@ has timeout => (
     default => 1,
 );
 
+has publish_timeout => (
+    isa     => 'Int',
+    is      => 'rw',
+    default => 1,
+);
+
 has _socket => (
     isa     => 'IO::Socket::INET',
     is      => 'rw',
@@ -341,8 +347,20 @@ sub publish {
 
     return if !$publish_args->{mandatory} && !$publish_args->{immediate};
 
-    my ($frame) = $self->_read;
-    return $frame;
+    my $frame = eval {
+        $self->_read_and_valid('Basic::Return', $self->publish_timeout);
+    };
+
+    if ($@) {
+        return if $@ =~ '^Read\stimed\sout';
+        die $@;
+    }
+
+    return {
+        return => $frame,
+        header => $self->_read_header_and_valid(),
+        body   => $self->_read_body_and_valid(),
+    };
 }
 
 sub _publish {
@@ -554,7 +572,7 @@ sub _read_and_valid {
     my ($self, $exp, $timeout,) = @_;
     $exp = ref($exp) eq 'ARRAY' ? $exp : [$exp];
 
-    my ($frame) = $self->_read($timeout);
+    my $frame = $self->_read($timeout);
     die 'Received data is not method frame', "\n"
         if !$frame->isa('Net::AMQP::Frame::Method');
 
@@ -572,7 +590,7 @@ sub _read_and_valid {
 sub _read_header_and_valid {
     my ($self,) = @_;
 
-    my ($frame) = $self->_read();
+    my $frame = $self->_read();
     if (!$frame->isa('Net::AMQP::Frame::Header')) {
         $self->_check_close_and_cleanup($frame);
         die 'Received data is not header frame', "\n";
@@ -589,7 +607,7 @@ sub _read_header_and_valid {
 sub _read_body_and_valid {
     my ($self,) = @_;
 
-    my ($frame) = $self->_read();
+    my $frame = $self->_read();
     return $frame if $frame->isa('Net::AMQP::Frame::Body');
 
     $self->_check_close_and_cleanup($frame);
@@ -624,17 +642,17 @@ sub _read {
 
     $timeout ||= $self->timeout;
 
-    my @frames;
+    my $frame;
 
     if ($timeout eq 'infinite') {
-        @frames = $self->_do_read();
+        $frame = $self->_do_read();
     } else {
-        if (timeout_call($timeout, sub {@frames = $self->_do_read()})) {
+        if (timeout_call($timeout, sub {$frame = $self->_do_read()})) {
             die 'Read timed out after', $timeout, "\n";
         }
     }
 
-    return @frames;
+    return $frame;
 }
 
 sub _do_read {
@@ -660,13 +678,13 @@ sub _do_read {
         $stack .= $data;
     }
 
-    my @frames = Net::AMQP->parse_raw_frames(\$stack);
+    my ($frame) = Net::AMQP->parse_raw_frames(\$stack);
     if ($self->verbose) {
-        print STDERR '[C] <-- [S] ' . Dumper(\@frames);
+        print STDERR '[C] <-- [S] ' . Dumper($frame);
         print STDERR '-----------', "\n";
     }
 
-    return @frames;
+    return $frame;
 }
 
 sub _post {
