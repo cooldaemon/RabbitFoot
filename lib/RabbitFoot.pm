@@ -745,6 +745,7 @@ You can use RabbitFoot to -
   * Declare, delete and bind queues
   * Set QoS
   * Publish, consume, get, ack and recover messages
+  * Select, commit and rollback transactions
 
 RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
 
