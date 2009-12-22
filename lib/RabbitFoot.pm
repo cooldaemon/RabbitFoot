@@ -722,7 +722,6 @@ RabbitFoot - A synchronous and single channel Perl AMQP client.
   use RabbitFoot;
 
   my $rf = RabbitFoot->new({
-      verbose => $self->verbose,
       timeout => 1,
   })->load_xml_spec(
       '/path/to/amqp0-8.xml',
