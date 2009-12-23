@@ -21,14 +21,14 @@ eval {
 
 plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
-plan tests => 22;
+plan tests => 23;
 
 use RabbitFoot;
 
 my $rf = RabbitFoot->new({timeout => 1, verbose => 1,});
 
 lives_ok sub {
-    $rf->load_xml_spec($FindBin::Bin . '/../amqp0-8.xml')
+    $rf->load_xml_spec($FindBin::Bin . '/../fixed_amqp0-8.xml')
 }, 'load xml spec';
  
 lives_ok sub {
@@ -159,6 +159,14 @@ lives_ok sub {
 lives_ok sub {
     $rf->purge_queue({queue => 'test_q'});
 }, 'purge_queue';
+
+lives_ok sub {
+    $rf->unbind_queue({
+        queue       => 'test_q',
+        exchange    => 'test_x',
+        routing_key => 'test_r',
+    });
+}, 'unbind_queue';
 
 lives_ok sub {
     $rf->delete_queue({queue => 'test_q'});

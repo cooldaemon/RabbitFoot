@@ -302,6 +302,20 @@ sub bind_queue {
     );
 }
 
+sub unbind_queue {
+    my ($self, $args,) = @_;
+
+    return $self->_post_and_read(
+        'Queue::Unbind',
+        {
+            %$args, # queue, exchange, routing_key
+            ticket      => 0,
+        },
+        'Queue::UnbindOk', 
+        1,
+    );
+}
+
 sub purge_queue {
     my ($self, $args,) = @_;
 
@@ -742,7 +756,7 @@ RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is
 You can use RabbitFoot to -
 
   * Declare and delete exchanges
-  * Declare, delete and bind queues
+  * Declare, delete, bind and unbind queues
   * Set QoS
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions

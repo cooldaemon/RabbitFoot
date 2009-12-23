@@ -9,7 +9,7 @@ requires qw(_run);
 has spec => (
     isa => 'Str',
     is  => 'rw',
-    default       => $FindBin::Bin . '/amqp0-8.xml',
+    default       => $FindBin::Bin . '/fixed_amqp0-8.xml',
     metaclass     => 'MooseX::Getopt::Meta::Attribute',
     cmd_aliases   => 's',
     documentation => 'AMQP specification',

@@ -5,9 +5,10 @@ RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is
 You can use RabbitFoot to -
 
   * Declare and delete exchanges
-  * Declare, delete and bind queues
+  * Declare, delete, bind and unbind queues
   * Set QoS
-  * Publish, consume, get, ack, recover messages
+  * Publish, consume, get, ack and recover messages
+  * Select, commit and rollback transactions
 
 RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
 
