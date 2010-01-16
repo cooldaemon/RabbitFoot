@@ -9,7 +9,7 @@ has exchange => (
     is            => 'rw',
     required      => 1,
     metaclass     => 'MooseX::Getopt::Meta::Attribute',
-    cmd_aliases   => 'q',
+    cmd_aliases   => 'e',
     documentation => 'exchange name',
 );
 
