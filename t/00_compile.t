@@ -1,5 +1,5 @@
 use strict;
-use Test::More tests => 8;
+use Test::More tests => 11;
 
 BEGIN {
     use_ok 'RabbitFoot';
@@ -10,4 +10,8 @@ BEGIN {
     use_ok 'RabbitFoot::Cmd::Command::bind_queue';
     use_ok 'RabbitFoot::Cmd::Command::purge_queue';
     use_ok 'RabbitFoot::Cmd::Command::declare_exchange';
+
+    use_ok 'AnyEvent::RabbitMQ';
+    use_ok 'AnyEvent::RabbitMQ::Channel';
+    use_ok 'AnyEvent::RabbitMQ::LocalQueue';
 }

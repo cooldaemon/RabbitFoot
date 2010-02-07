@@ -606,7 +606,7 @@ sub _read_header_and_valid {
 
     my $frame = $self->_read();
     if (!$frame->isa('Net::AMQP::Frame::Header')) {
-        $self->_check_close_and_cleanup($frame);
+        $self->_check_close_and_clean($frame);
         die 'Received data is not header frame', "\n";
     }
 
@@ -624,7 +624,7 @@ sub _read_body_and_valid {
     my $frame = $self->_read();
     return $frame if $frame->isa('Net::AMQP::Frame::Body');
 
-    $self->_check_close_and_cleanup($frame);
+    $self->_check_close_and_clean($frame);
     die 'Received data is not body frame', "\n";
 }
 
@@ -761,7 +761,7 @@ You can use RabbitFoot to -
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
 
-RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
+RabbitFoot is known to work with RabbitMQ versions 1.7.1 and version 0-8 of the AMQP specification.
 
 =head1 AUTHOR
 
