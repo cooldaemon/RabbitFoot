@@ -281,7 +281,7 @@ sub _open {
         'Connection::OpenOk', 
         sub {
             $self->{_is_open} = 1;
-            $args->{on_success}->();
+            $args->{on_success}->($self);
         },
         $args->{on_failure},
     );
