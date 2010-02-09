@@ -63,18 +63,16 @@ __PACKAGE__->meta->make_immutable;
 no Moose;
 
 sub open {
-    my ($self, $args,) = @_;
-
-    $args->{on_success} ||= sub {};
-    $args->{on_failur}  ||= sub {die @_};
+    my $self = shift;
+    my %args = @_;
 
     $self->connection->_push_write_and_read(
         'Channel::Open', {}, 'Channel::OpenOk',
         sub {
             $self->{_is_open} = 1;
-            $args->{on_success}->();
+            $args{on_success}->();
         },
-        $args->{on_failur},
+        $args{on_failur},
         $self->id,
     );
 
@@ -82,24 +80,22 @@ sub open {
 }
 
 sub close {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = $self->connection->_set_cbs(@_);
 
     return $self if !$self->_is_open;
 
-    $args->{on_success} ||= sub {};
-    $args->{on_failur}  ||= sub {die @_};
-
-    return $self->_close($args) if 0 == $self->count_consumer_cbs;
+    return $self->_close(%args) if 0 == $self->count_consumer_cbs;
 
     for my $consumer_tag ($self->consumer_tags) {
         $self->cancel({
             consumer_tag => $consumer_tag,
             on_success   => sub {
-                $self->_close($args);
+                $self->_close(%args);
             },
             on_failure   => sub {
-                $self->_close($args);
-                $args->{on_failure}->(@_);
+                $self->_close(%args);
+                $args{on_failure}->(@_);
             }
         });
     }
@@ -108,19 +104,20 @@ sub close {
 }
 
 sub _close {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = @_;
 
     $self->connection->_push_write_and_read(
         'Channel::Close', {}, 'Channel::CloseOk',
         sub {
             $self->{_is_open} = 0;
             $self->connection->delete_channel($self->id);
-            $args->{on_success}->();
+            $args{on_success}->();
         },
         sub {
             $self->{_is_open} = 0;
             $self->connection->delete_channel($self->id);
-            $args->{on_failur}->();
+            $args{on_failur}->();
         },
         $self->id,
     );
@@ -129,8 +126,8 @@ sub _close {
 }
 
 sub declare_exchange {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Exchange::Declare',
@@ -140,7 +137,7 @@ sub declare_exchange {
             durable     => 0,
             auto_delete => 0,
             internal    => 0,
-            %$args, # exchange
+            %args, # exchange
             ticket      => 0,
             nowait      => 0, # FIXME
         },
@@ -154,14 +151,14 @@ sub declare_exchange {
 }
 
 sub delete_exchange {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Exchange::Delete',
         {
             if_unused => 0,
-            %$args, # exchange
+            %args, # exchange
             ticket    => 0,
             nowait    => 0, # FIXME
         },
@@ -175,8 +172,8 @@ sub delete_exchange {
 }
 
 sub declare_queue {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Queue::Declare',
@@ -187,7 +184,7 @@ sub declare_queue {
             exclusive   => 0,
             auto_delete => 0,
             no_ack      => 1,
-            %$args,
+            %args,
             ticket      => 0,
             nowait      => 0, # FIXME
         },
@@ -199,15 +196,15 @@ sub declare_queue {
 }
 
 sub bind_queue {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Queue::Bind',
         {
-            %$args, # queue, exchange, routing_key
-            ticket      => 0,
-            nowait      => 0, # FIXME
+            %args, # queue, exchange, routing_key
+            ticket => 0,
+            nowait => 0, # FIXME
         },
         'Queue::BindOk', 
         $cb,
@@ -219,14 +216,14 @@ sub bind_queue {
 }
 
 sub unbind_queue {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Queue::Unbind',
         {
-            %$args, # queue, exchange, routing_key
-            ticket      => 0,
+            %args, # queue, exchange, routing_key
+            ticket => 0,
         },
         'Queue::UnbindOk', 
         $cb,
@@ -238,13 +235,13 @@ sub unbind_queue {
 }
 
 sub purge_queue {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Queue::Purge',
         {
-            %$args, # queue
+            %args, # queue
             ticket => 0,
             nowait => 0, # FIXME
         },
@@ -258,15 +255,15 @@ sub purge_queue {
 }
 
 sub delete_queue {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Queue::Delete',
         {
             if_unused => 0,
             if_empty  => 0,
-            %$args, # queue
+            %args, # queue
             ticket    => 0,
             nowait    => 0, # FIXME
         },
@@ -280,39 +277,40 @@ sub delete_queue {
 }
 
 sub publish {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = @_;
 
-    my $header_args = delete $args->{header}    || {};
-    my $body        = delete $args->{body}      || '';
-    my $return_cb   = delete $args->{on_return} || sub {};
+    my $header_args = delete $args{header}    || {};
+    my $body        = delete $args{body}      || '';
+    my $return_cb   = delete $args{on_return} || sub {};
 
     $self->_publish(
-        $args,
+        %args,
     )->_header(
         $header_args, $body,
     )->_body(
         $body,
     );
 
-    return $self if !$args->{mandatory} && !$args->{immediate};
+    return $self if !$args{mandatory} && !$args{immediate};
 
     $self->set_return_cbs(
-        ($args->{exchange} || '') . '_' . $args->{routing_key}
-            => $return_cb
+        ($args{exchange} || '') . '_' . $args{routing_key} => $return_cb
     );
 
     return $self;
 }
 
 sub _publish {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = @_;
 
     $self->connection->_push_write(
         Net::AMQP::Protocol::Basic::Publish->new(
             exchange  => '',
             mandatory => 0,
             immediate => 0,
-            %$args, # routing_key
+            %args, # routing_key
             ticket    => 0,
         ),
         $self->id,
@@ -364,10 +362,10 @@ sub _body {
 }
 
 sub consume {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
-    my $consumer_cb = delete $args->{on_consume} || sub {};
+    my $consumer_cb = delete $args{on_consume} || sub {};
     
     $self->connection->_push_write_and_read(
         'Basic::Consume',
@@ -376,7 +374,7 @@ sub consume {
             no_local     => 0,
             no_ack       => 1,
             exclusive    => 0,
-            %$args, # queue
+            %args, # queue
             ticket       => 0,
             nowait       => 0, # FIXME
         },
@@ -396,25 +394,25 @@ sub consume {
 }
 
 sub cancel {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     return $failure_cb->('consumer_tag is not set')
-        if !defined $args->{consumer_tag};
+        if !defined $args{consumer_tag};
 
     return $failure_cb->('Unknown consumer_tag')
-        if !$self->has_consumer_cbs($args->{consumer_tag});
+        if !$self->has_consumer_cbs($args{consumer_tag});
 
     $self->connection->_push_write_and_read(
         'Basic::Cancel',
         {
-            %$args, # consumer_tag
+            %args, # consumer_tag
             nowait => 0,
         },
         'Basic::CancelOk', 
         sub {
             my $frame = shift;
-            $self->delete_consumer_cbs($args->{consumer_tag});
+            $self->delete_consumer_cbs($args{consumer_tag});
             $cb->($frame);
         },
         $failure_cb,
@@ -425,14 +423,14 @@ sub cancel {
 }
 
 sub get {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Basic::Get',
         {
             no_ack => 1,
-            %$args, # queue
+            %args, # queue
             ticket => 0,
         },
         [qw(Basic::GetOk Basic::GetEmpty)], 
@@ -450,15 +448,16 @@ sub get {
 }
 
 sub ack {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = @_;
 
     $self->connection->_push_write(
         Net::AMQP::Protocol::Basic::Ack->new(
             delivery_tag => 0,
             multiple     => (
-                defined $args->{delivery_tag} && $args->{delivery_tag} != 0 ? 0 : 1
+                defined $args{delivery_tag} && $args{delivery_tag} != 0 ? 0 : 1
             ),
-            %$args,
+            %args,
         ),
         $self->id,
     );
@@ -467,14 +466,14 @@ sub ack {
 }
 
 sub qos {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Basic::Qos',
         {
             prefetch_count => 1,
-            %$args,
+            %args,
             prefetch_size  => 0,
             global         => 0,
         },
@@ -488,12 +487,13 @@ sub qos {
 }
 
 sub recover {
-    my ($self, $args,) = @_;
+    my $self = shift;
+    my %args = @_;
 
     $self->connection->_push_write(
         Net::AMQP::Protocol::Basic::Recover->new(
             requeue => 0,
-            %$args,
+            %args,
         ),
         $self->id,
     );
@@ -502,8 +502,8 @@ sub recover {
 }
 
 sub select_tx {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Tx::Select', {}, 'Tx::SelectOk',
@@ -516,8 +516,8 @@ sub select_tx {
 }
 
 sub commit_tx {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Tx::Commit', {}, 'Tx::CommitOk',
@@ -530,8 +530,8 @@ sub commit_tx {
 }
 
 sub rollback_tx {
-    my ($self, $args,) = @_;
-    my ($cb, $failure_cb,) = $self->_delete_callbacks($args);
+    my $self = shift;
+    my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
 
     $self->connection->_push_write_and_read(
         'Tx::Rollback', {}, 'Tx::RollbackOk',
@@ -541,15 +541,6 @@ sub rollback_tx {
     );
 
     return $self;
-}
-
-sub _delete_callbacks {
-    my ($self, $args,) = @_;
-
-    my $cb         = delete $args->{on_success} || sub {};
-    my $failure_cb = delete $args->{on_failure} || sub {die @_};
-
-    return $cb, $failure_cb;
 }
 
 sub _push_queue_or_consume {
@@ -606,6 +597,16 @@ sub _push_read_header_and_body {
     });
 
     return $self;
+}
+
+sub _delete_cbs {
+    my $self = shift;
+    my %args = @_;
+
+    my $cb         = delete $args{on_success} || sub {};
+    my $failure_cb = delete $args{on_failure} || sub {die @_};
+
+    return $cb, $failure_cb, %args;
 }
 
 sub DEMOLISH {

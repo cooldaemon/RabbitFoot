@@ -25,14 +25,14 @@ plan tests => 24;
 
 use AnyEvent::RabbitMQ;
 
-my $ar = AnyEvent::RabbitMQ->new({timeout => 1, verbose => 1,});
+my $ar = AnyEvent::RabbitMQ->new(timeout => 1, verbose => 1,);
 
 lives_ok sub {
     $ar->load_xml_spec($FindBin::Bin . '/../fixed_amqp0-8.xml')
 }, 'load xml spec';
 
 my $done = AnyEvent->condvar;
-$ar->connect({
+$ar->connect(
     (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
     on_success => sub {
         my $ar = shift;
@@ -40,45 +40,45 @@ $ar->connect({
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
 my $ch;
-$ar->open_channel({
+$ar->open_channel(
     on_success => sub {
         $ch = shift;
         isa_ok($ch, 'AnyEvent::RabbitMQ::Channel');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->declare_exchange({
+$ch->declare_exchange(
     exchange   => 'test_x',
     on_success => sub {
         pass('declare exchange');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->declare_queue({
+$ch->declare_queue(
     queue      => 'test_q',
     on_success => sub {
         pass('declare queue');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->bind_queue({
+$ch->bind_queue(
     queue       => 'test_q',
     exchange    => 'test_x',
     routing_key => 'test_r',
@@ -87,11 +87,11 @@ $ch->bind_queue({
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->consume({
+$ch->consume(
     queue      => 'test_q',
     on_consume => sub {
         my $response = shift;
@@ -100,24 +100,24 @@ $ch->consume({
         pass('publish and consume message');
         return if $message ne 'cancel';
 
-        $ch->cancel({
+        $ch->cancel(
             consumer_tag => $response->{deliver}->method_frame->consumer_tag,
             on_success   => sub {
                 pass('cancel');
                 $done->send;
             },
             on_failure   => failure_cb($done),
-        });
+        );
     },
     on_failure => failure_cb($done),
-});
+);
 publish($ch, 'Hello RabbitMQ', $done,);
 publish($ch, 'cancel', $done,);
 $done->recv;
 
 $done = AnyEvent->condvar;
 publish($ch, 'I love RabbitMQ', $done,);
-$ch->get({
+$ch->get(
     queue      => 'test_q',
     on_success => sub {
         my $response = shift;
@@ -125,11 +125,11 @@ $ch->get({
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->get({
+$ch->get(
     queue      => 'test_q',
     on_success => sub {
         my $response = shift;
@@ -137,57 +137,57 @@ $ch->get({
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->consume({
+$ch->consume(
     queue      => 'test_q',
     no_ack     => 0,
     on_consume => sub {
         my $response = shift;
-        $ch->ack({
+        $ch->ack(
             delivery_tag => $response->{deliver}->method_frame->delivery_tag
-        });
+        );
         pass('ack deliver');
 
-        $ch->cancel({
+        $ch->cancel(
             consumer_tag => $response->{deliver}->method_frame->consumer_tag,
             on_success   => sub {
                 pass('cancel');
                 $done->send;
             },
             on_failure   => failure_cb($done),
-        });
+        );
     },
     on_failure => failure_cb($done),
-});
+);
 publish($ch, 'NO RabbitMQ, NO LIFE', $done,);
 $done->recv;
 
 $done = AnyEvent->condvar;
 publish($ch, 'RabbitMQ is cool', $done,);
-$ch->get({
+$ch->get(
     queue      => 'test_q',
     no_ack     => 0,
     on_success => sub {
         my $response = shift;
-        $ch->ack({
+        $ch->ack(
             delivery_tag => $response->{ok}->method_frame->delivery_tag
-        });
+        );
         pass('ack get');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
 my @responses;
-$ch->qos({
+$ch->qos(
     prefetch_count => 2,
     on_success => sub {
-        $ch->consume({
+        $ch->consume(
             queue      => 'test_q',
             no_ack     => 0,
             on_consume => sub {
@@ -197,39 +197,39 @@ $ch->qos({
                 $done->send;
             },
             on_failure => failure_cb($done),
-        });
+        );
     },
     on_failure => failure_cb($done),
-});
+);
 publish($ch, 'RabbitMQ is excellent', $done,);
 publish($ch, 'RabbitMQ is fantastic', $done,);
 $done->recv;
 pass('qos');
 
 for my $response (@responses) {
-    $ch->ack({
+    $ch->ack(
         delivery_tag => $response->{deliver}->method_frame->delivery_tag,
-    });
+    );
 }
 
 $done = AnyEvent->condvar;
-$ch->cancel({
+$ch->cancel(
     consumer_tag => $responses[0]->{deliver}->method_frame->consumer_tag,
     on_success   => sub {
-        $ch->qos({
+        $ch->qos(
             on_success => sub {
                 $done->send;
             },
             on_failure => failure_cb($done),
-        });
+        );
     },
     on_failure   => failure_cb($done),
-});
+);
 $done->recv;
  
 $done = AnyEvent->condvar;
 my $recover_count = 0;
-$ch->consume({
+$ch->consume(
     queue      => 'test_q',
     no_ack     => 0,
     on_consume => sub {
@@ -240,63 +240,63 @@ $ch->consume({
             return;
         }
 
-        $ch->ack({
+        $ch->ack(
             delivery_tag => $response->{deliver}->method_frame->delivery_tag
-        });
+        );
 
-        $ch->cancel({
+        $ch->cancel(
             consumer_tag => $response->{deliver}->method_frame->consumer_tag,
             on_success   => sub {
                 $done->send;
             },
             on_failure   => failure_cb($done),
-        });
+        );
     },
     on_failure => failure_cb($done),
-});
+);
 publish($ch, 'RabbitMQ is powerful', $done,);
 $done->recv;
 pass('recover');
 
 $done = AnyEvent->condvar;
-$ch->select_tx({
+$ch->select_tx(
     on_success => sub {
         pass('select tx');
         publish($ch, 'RabbitMQ is highly reliable systems', $done,);
 
-        $ch->rollback_tx({
+        $ch->rollback_tx(
             on_success => sub {
                 pass('rollback tx');
                 publish($ch, 'RabbitMQ is highly reliable systems.', $done,);
 
-                $ch->commit_tx({
+                $ch->commit_tx(
                     on_success => sub {
                         pass('commit tx');
                         $done->send;
                     },
                     on_failure => failure_cb($done),
-                });
+                );
             },
             on_failure => failure_cb($done),
-        });
+        );
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->purge_queue({
+$ch->purge_queue(
     queue      => 'test_q',
     on_success => sub {
         pass('purge queue');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->unbind_queue({
+$ch->unbind_queue(
     queue       => 'test_q',
     exchange    => 'test_x',
     routing_key => 'test_r',
@@ -305,39 +305,39 @@ $ch->unbind_queue({
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->delete_queue({
+$ch->delete_queue(
     queue      => 'test_q',
     on_success => sub {
         pass('delete queue');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ch->delete_exchange({
+$ch->delete_exchange(
     exchange   => 'test_x',
     on_success => sub {
         pass('delete exchange');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 $done = AnyEvent->condvar;
-$ar->close({
+$ar->close(
     on_success => sub {
         pass('close');
         $done->send;
     },
     on_failure => failure_cb($done),
-});
+);
 $done->recv;
 
 sub failure_cb {
@@ -351,7 +351,7 @@ sub failure_cb {
 sub publish {
     my ($ch, $message, $cv,) = @_;
 
-    $ch->publish({
+    $ch->publish(
         exchange    => 'test_x',
         routing_key => 'test_r',
         body        => $message,
@@ -360,7 +360,7 @@ sub publish {
             fail('on_return: ' . Dumper($response));
             $cv->send;
         },
-    });
+    );
 
     return;
 }
