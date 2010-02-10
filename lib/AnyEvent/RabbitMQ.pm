@@ -188,7 +188,7 @@ sub _check_close_and_clean {
             return;
         }
 
-        $channel->_is_open(0);
+        $channel->{_is_open} = 0;
         $self->delete_channel($id);
         $failure_cb->($message);
         return;

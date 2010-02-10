@@ -25,7 +25,7 @@ plan tests => 24;
 
 use AnyEvent::RabbitMQ;
 
-my $ar = AnyEvent::RabbitMQ->new(timeout => 1, verbose => 1,);
+my $ar = AnyEvent::RabbitMQ->new(timeout => 1,);
 
 lives_ok sub {
     $ar->load_xml_spec($FindBin::Bin . '/../fixed_amqp0-8.xml')
@@ -91,32 +91,37 @@ $ch->bind_queue(
 $done->recv;
 
 $done = AnyEvent->condvar;
+my $consumer_tag;
 $ch->consume(
     queue      => 'test_q',
+    on_success => sub {
+        my $frame = shift;
+        $consumer_tag = $frame->method_frame->consumer_tag;
+        pass('consume');
+    },
     on_consume => sub {
         my $response = shift;
-        my $message  = $response->{body}->payload;
-
-        pass('publish and consume message');
-        return if $message ne 'cancel';
-
-        $ch->cancel(
-            consumer_tag => $response->{deliver}->method_frame->consumer_tag,
-            on_success   => sub {
-                pass('cancel');
-                $done->send;
-            },
-            on_failure   => failure_cb($done),
-        );
+        ok($response->{body}->payload, 'publish');
+        $done->send;
     },
     on_failure => failure_cb($done),
 );
-publish($ch, 'Hello RabbitMQ', $done,);
-publish($ch, 'cancel', $done,);
+publish($ch, 'Hello RabbitMQ.', $done,);
 $done->recv;
 
 $done = AnyEvent->condvar;
-publish($ch, 'I love RabbitMQ', $done,);
+$ch->cancel(
+    consumer_tag => $consumer_tag,
+    on_success   => sub {
+        pass('cancel');
+        $done->send;
+    },
+    on_failure   => failure_cb($done),
+);
+$done->recv;
+
+$done = AnyEvent->condvar;
+publish($ch, 'I love RabbitMQ.', $done,);
 $ch->get(
     queue      => 'test_q',
     on_success => sub {
@@ -162,11 +167,11 @@ $ch->consume(
     },
     on_failure => failure_cb($done),
 );
-publish($ch, 'NO RabbitMQ, NO LIFE', $done,);
+publish($ch, 'NO RabbitMQ, NO LIFE.', $done,);
 $done->recv;
 
 $done = AnyEvent->condvar;
-publish($ch, 'RabbitMQ is cool', $done,);
+publish($ch, 'RabbitMQ is cool.', $done,);
 $ch->get(
     queue      => 'test_q',
     no_ack     => 0,
@@ -201,8 +206,8 @@ $ch->qos(
     },
     on_failure => failure_cb($done),
 );
-publish($ch, 'RabbitMQ is excellent', $done,);
-publish($ch, 'RabbitMQ is fantastic', $done,);
+publish($ch, 'RabbitMQ is excellent.', $done,);
+publish($ch, 'RabbitMQ is fantastic.', $done,);
 $done->recv;
 pass('qos');
 
@@ -236,7 +241,7 @@ $ch->consume(
         my $response = shift;
 
         if (5 > ++$recover_count) {
-            $ch->recover({});
+            $ch->recover();
             return;
         }
 
@@ -254,7 +259,7 @@ $ch->consume(
     },
     on_failure => failure_cb($done),
 );
-publish($ch, 'RabbitMQ is powerful', $done,);
+publish($ch, 'RabbitMQ is powerful.', $done,);
 $done->recv;
 pass('recover');
 
@@ -262,7 +267,7 @@ $done = AnyEvent->condvar;
 $ch->select_tx(
     on_success => sub {
         pass('select tx');
-        publish($ch, 'RabbitMQ is highly reliable systems', $done,);
+        publish($ch, 'RabbitMQ is highly reliable systems.', $done,);
 
         $ch->rollback_tx(
             on_success => sub {

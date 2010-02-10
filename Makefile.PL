@@ -12,6 +12,8 @@ requires 'List::MoreUtils';
 requires 'Sys::SigAction';
 requires 'Net::AMQP';
 requires 'AnyEvent';
+requires 'Coro';
+requires 'Coro::AnyEvent';
 
 tests 't/*.t';
 author_tests 'xt';
