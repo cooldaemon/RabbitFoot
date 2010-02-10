@@ -30,7 +30,7 @@ sub _validate_queue {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->purge_queue({queue => $self->queue})->method_frame;
+    my $method_frame = $client->purge_queue(queue => $self->queue)->method_frame;
 
     print 'Purged queue', "\n";
     print 'message_count: ', $method_frame->message_count, "\n";

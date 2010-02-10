@@ -86,9 +86,9 @@ sub _validate_type {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->declare_exchange({
+    my $method_frame = $client->declare_exchange(
         (map {$_ => $self->$_} qw(exchange type passive durable auto_delete internal))
-    })->method_frame;
+    )->method_frame;
 
     print 'Declared exchange', "\n";
     return;

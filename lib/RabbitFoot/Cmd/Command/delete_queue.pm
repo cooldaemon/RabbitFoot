@@ -48,9 +48,9 @@ sub _validate_queue {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->delete_queue({
+    my $method_frame = $client->delete_queue(
         (map {$_ => $self->$_} qw(queue if_unused if_empty))
-    })->method_frame;
+    )->method_frame;
 
     print 'Deleted queue', "\n";
     print 'message_count: ', $method_frame->message_count, "\n";

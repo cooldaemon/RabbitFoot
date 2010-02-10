@@ -114,16 +114,16 @@ sub execute {
     my $self = shift;
     my ($opt, $args,) = @_;
 
-    my $client = RabbitFoot->new({
+    my $ch = RabbitFoot->new(
         verbose => $self->verbose,
         timeout => 1,
-    })->load_xml_spec(
+    )->load_xml_spec(
         $self->spec,
-    )->connect({
+    )->connect(
         (map {$_ => $self->$_} qw(host port user pass vhost))
-    });
+    )->open_channel();
 
-    $self->_run($client, @_,);
+    $self->_run($ch, @_,);
     return;
 }
 

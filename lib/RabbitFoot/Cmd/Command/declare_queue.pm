@@ -67,9 +67,9 @@ sub _validate_queue {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->declare_queue({
+    my $method_frame = $client->declare_queue(
         (map {$_ => $self->$_} qw(queue passive durable exclusive auto_delete))
-    })->method_frame;
+    )->method_frame;
 
     print 'Declared queue', "\n";
     for my $method (qw(queue message_count consumer_count)) {

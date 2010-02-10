@@ -62,9 +62,9 @@ sub _validate_routing_key {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->unbind_queue({
+    my $method_frame = $client->unbind_queue(
         (map {$_ => $self->$_} qw(queue exchange routing_key))
-    })->method_frame;
+    )->method_frame;
 
     print 'Unbound queue to exchange', "\n";
     return;

@@ -39,9 +39,9 @@ sub _validate_exchange {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->delete_exchange({
+    my $method_frame = $client->delete_exchange(
         (map {$_ => $self->$_} qw(exchange if_unused))
-    })->method_frame;
+    )->method_frame;
 
     print 'Deleted exchange', "\n";
     return;
