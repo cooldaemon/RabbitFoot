@@ -1,6 +1,6 @@
 This is Perl module RabbitFoot.
 
-RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in a synchronous fashion.
+RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
 
 You can use RabbitFoot to -
 
@@ -10,7 +10,7 @@ You can use RabbitFoot to -
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
 
-RabbitFoot is known to work with RabbitMQ versions 1.7.0 and version 0-8 of the AMQP specification.
+RabbitFoot is known to work with RabbitMQ versions 1.7.1 and version 0-8 of the AMQP specification.
 
 INSTALLATION
 
