@@ -54,7 +54,6 @@ has channels => (
     provides  => {
         set    => 'set_channel',
         get    => 'get_channel',
-        empty  => 'has_channels',
         delete => 'delete_channel',
         keys   => 'channel_ids',
         count  => 'count_channels',
@@ -147,7 +146,7 @@ sub _read_loop {
             my $id = $frame->channel;
             if (0 == $id) {
                 $self->_queue->push($frame);
-            } elsif ($self->has_channels($id)) {
+            } elsif ($self->get_channel($id)) {
                 $self->get_channel($id)->_push_queue_or_consume($frame, $failure_cb);
             } else {
                 $failure_cb->('Unknown channel id: ' . $frame->channel);
@@ -359,11 +358,11 @@ sub open_channel {
 
     my $id = $args{id};
     return $args{on_failure}->("Channel id $id is already in use")
-        if $id && $self->has_channels($id);
+        if $id && $self->get_channel($id);
 
     if (!$id) {
         for my $candidate_id (1 .. (2**16 - 1)) { # FIXME
-            next if $self->has_channels($candidate_id);
+            next if $self->get_channel($candidate_id);
             $id = $candidate_id;
             last;
         }

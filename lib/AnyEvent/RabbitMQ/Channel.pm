@@ -41,7 +41,6 @@ has consumer_cbs => (
     provides  => {
         set    => 'set_consumer_cbs',
         get    => 'get_consumer_cbs',
-        empty  => 'has_consumer_cbs',
         delete => 'delete_consumer_cbs',
         keys   => 'consumer_tags',
         count  => 'count_consumer_cbs',
@@ -401,7 +400,7 @@ sub cancel {
         if !defined $args{consumer_tag};
 
     return $failure_cb->('Unknown consumer_tag')
-        if !$self->has_consumer_cbs($args{consumer_tag});
+        if !$self->get_consumer_cbs($args{consumer_tag});
 
     $self->connection->_push_write_and_read(
         'Basic::Cancel',
