@@ -88,7 +88,7 @@ sub close {
     return $self->_close(%args) if 0 == $self->count_consumer_cbs;
 
     for my $consumer_tag ($self->consumer_tags) {
-        $self->cancel({
+        $self->cancel(
             consumer_tag => $consumer_tag,
             on_success   => sub {
                 $self->_close(%args);
@@ -97,7 +97,7 @@ sub close {
                 $self->_close(%args);
                 $args{on_failure}->(@_);
             }
-        });
+        );
     }
 
     return $self;
