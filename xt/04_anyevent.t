@@ -25,7 +25,7 @@ plan tests => 24;
 
 use AnyEvent::RabbitMQ;
 
-my $ar = AnyEvent::RabbitMQ->new(timeout => 1,);
+my $ar = AnyEvent::RabbitMQ->new();
 
 lives_ok sub {
     $ar->load_xml_spec($FindBin::Bin . '/../fixed_amqp0-8.xml')
@@ -34,6 +34,7 @@ lives_ok sub {
 my $done = AnyEvent->condvar;
 $ar->connect(
     (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
+    timeout    => 1,
     on_success => sub {
         my $ar = shift;
         isa_ok($ar, 'AnyEvent::RabbitMQ');

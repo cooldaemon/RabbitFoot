@@ -22,12 +22,6 @@ has verbose => (
     is  => 'rw',
 );
 
-has timeout => (
-    isa     => 'Int',
-    is      => 'rw',
-    default => 1,
-);
-
 has _connect_guard => (
     isa     => 'Guard',
     is      => 'ro',
@@ -81,6 +75,8 @@ sub connect {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
 
+    $args{timeout} ||= 0;
+
     if ($self->verbose) {
         print STDERR 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
     }
@@ -103,7 +99,7 @@ sub connect {
             $self->_start(%args,);
         },
         sub {
-            return $self->timeout;
+            return $args{timeout};
         },
     );
 
@@ -500,9 +496,7 @@ AnyEvent::RabbitMQ - An asynchronous and multi channel Perl AMQP client.
 
   my $cv = AnyEvent->condvar;
 
-  my $ar = AnyEvent::RabbitMQ->new(
-      timeout => 1,
-  )->load_xml_spec(
+  my $ar = AnyEvent::RabbitMQ->new->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
       host       => 'localhosti',
@@ -510,6 +504,7 @@ AnyEvent::RabbitMQ - An asynchronous and multi channel Perl AMQP client.
       user       => 'guest',
       port       => 'guest',
       vhost      => '/',
+      timeout    => 1,
       on_success => sub {
           $ar->open_channel(
               on_success => sub {

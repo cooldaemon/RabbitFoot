@@ -26,12 +26,11 @@ plan tests => 6;
 use Coro;
 use RabbitFoot;
 
-my $rf = RabbitFoot->new(
-    timeout => 1,
-)->load_xml_spec(
+my $rf = RabbitFoot->new()->load_xml_spec(
     $FindBin::Bin . '/../fixed_amqp0-8.xml',
 )->connect(
-    (map {$_ => $conf->{$_}} qw(host port user pass vhost))
+    (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
+    timeout => 1,
 );
 
 my $main = $Coro::current;

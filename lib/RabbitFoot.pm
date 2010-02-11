@@ -15,12 +15,6 @@ has verbose => (
     is  => 'rw',
 );
 
-has timeout => (
-    isa     => 'Int',
-    is      => 'rw',
-    default => 1,
-);
-
 has _ar => (
     isa     => 'AnyEvent::RabbitMQ',
     is      => 'ro',
@@ -41,7 +35,6 @@ sub BUILD {
     my $self = shift;
     $self->{_ar} = AnyEvent::RabbitMQ->new(
         verbose => $self->verbose,
-        timeout => $self->timeout,
     );
 }
 
@@ -82,16 +75,15 @@ RabbitFoot - An Asynchronous and single channel Perl AMQP client.
 
   use RabbitFoot;
 
-  my $rf = RabbitFoot->new(
-      timeout => 1,
-  )->load_xml_spec(
+  my $rf = RabbitFoot->new()->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
-      host  => 'localhosti',
-      port  => 5672,
-      user  => 'guest',
-      port  => 'guest',
-      vhost => '/',
+      host    => 'localhosti',
+      port    => 5672,
+      user    => 'guest',
+      port    => 'guest',
+      vhost   => '/',
+      timeout => 1,
   );
 
   my $ch = $rf->open_channel();

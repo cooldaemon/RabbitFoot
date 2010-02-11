@@ -116,10 +116,10 @@ sub execute {
 
     my $ch = RabbitFoot->new(
         verbose => $self->verbose,
-        timeout => 1,
     )->load_xml_spec(
         $self->spec,
     )->connect(
+        timeout => 5,
         (map {$_ => $self->$_} qw(host port user pass vhost))
     )->open_channel();
 
