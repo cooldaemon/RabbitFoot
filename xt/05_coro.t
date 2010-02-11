@@ -23,6 +23,7 @@ plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
 plan tests => 23;
 
+use Coro;
 use RabbitFoot;
 
 #my $rf = RabbitFoot->new(timeout => 1, verbose => 1,);
@@ -59,19 +60,25 @@ lives_ok sub {
     publish($ch, 'Hello RabbitMQ.');
 }, 'publish';
 
-my $done = AnyEvent->condvar;
+my $main = $Coro::current;
+my $frame;
+my $done = 0;
 lives_ok sub {
-    $ch->consume(
+    $frame = $ch->consume(
         queue      => 'test_q',
-        on_consume => sub {
+        on_consume => unblock_sub {
             my $response = shift;
-            $done->send($response->{deliver}->method_frame->consumer_tag);
+            $done = 1;
+            $main->ready;
+            schedule;
         },
     );
 }, 'consume';
 
+schedule while !$done;
+
 lives_ok sub {
-    $ch->cancel(consumer_tag => $done->recv,);
+    $ch->cancel(consumer_tag => $frame->method_frame->consumer_tag);
 }, 'cancel';
 
 lives_ok sub {
@@ -83,21 +90,27 @@ lives_ok sub {
     $ch->get(queue => 'test_q');
 }, 'empty';
 
-$done = AnyEvent->condvar;
 lives_ok sub {
-    $ch->consume(
-        queue  => 'test_q',
-        no_ack => 0,
-        on_consume => sub {
+    $done = 0;
+    $frame = $ch->consume(
+        queue      => 'test_q',
+        no_ack     => 0,
+        on_consume => unblock_sub {
             my $response = shift;
             $ch->ack(
                 delivery_tag => $response->{deliver}->method_frame->delivery_tag
             );
-            $done->send($response->{deliver}->method_frame->consumer_tag);
+
+            $done = 1;
+            $main->ready;
+            schedule;
         }
     );
+
     publish($ch, 'NO RabbitMQ, NO LIFE.');
-    $ch->cancel(consumer_tag => $done->recv,);
+    schedule while !$done;
+    $ch->cancel(consumer_tag => $frame->method_frame->consumer_tag);
+
 }, 'ack deliver';
 
 lives_ok sub {
@@ -112,21 +125,24 @@ lives_ok sub {
 lives_ok sub {
     $ch->qos(prefetch_count => 2);
 
-    $done = AnyEvent->condvar;
     my @responses;
-    my $frame = $ch->consume(
+    $done = 0;
+    $frame = $ch->consume(
         queue  => 'test_q',
         no_ack => 0,
-        on_consume => sub {
+        on_consume => unblock_sub {
             my $response = shift;
             push @responses, $response;
             return if 2 > scalar @responses;
-            $done->send;
+
+            $done = 1;
+            $main->ready;
+            schedule;
         },
     );
     publish($ch, 'RabbitMQ is excellent.');
     publish($ch, 'RabbitMQ is fantastic.');
-    $done->recv;
+    schedule while !$done;
 
     for my $response (@responses) {
         $ch->ack(
@@ -139,12 +155,12 @@ lives_ok sub {
 }, 'qos';
 
 lives_ok sub {
-    $done = AnyEvent->condvar;
     my $recover_count = 0;
-    $ch->consume(
+    $done = 0;
+    $frame = $ch->consume(
         queue  => 'test_q',
         no_ack => 0,
-        on_consume => sub {
+        on_consume => unblock_sub {
             my $response = shift;
 
             if (5 > ++$recover_count) {
@@ -156,11 +172,14 @@ lives_ok sub {
                 delivery_tag => $response->{deliver}->method_frame->delivery_tag
             );
 
-            $done->send($response->{deliver}->method_frame->consumer_tag);
+            $done = 1;
+            $main->ready;
+            schedule;
         }
     );
     publish($ch, 'RabbitMQ is powerful.');
-    $ch->cancel(consumer_tag => $done->recv,);
+    schedule while !$done;
+    $ch->cancel(consumer_tag => $frame->method_frame->consumer_tag);
 }, 'recover';
 
 lives_ok sub {
@@ -208,7 +227,7 @@ sub publish {
         exchange    => 'test_x',
         routing_key => 'test_r',
         body        => $message,
-        on_return   => sub {
+        on_return   => unblock_sub {
             my $response = shift;
             my $error_message = 'on_return: ' . Dumper($response);
             die $error_message;
