@@ -9,7 +9,6 @@ requires 'MooseX::ConfigFromFile';
 requires 'Config::Any';
 requires 'JSON::Syck';
 requires 'List::MoreUtils';
-requires 'Sys::SigAction';
 requires 'Net::AMQP';
 requires 'AnyEvent';
 requires 'Coro';
