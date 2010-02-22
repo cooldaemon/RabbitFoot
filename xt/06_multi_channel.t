@@ -27,7 +27,7 @@ use Coro;
 use RabbitFoot;
 
 my $rf = RabbitFoot->new()->load_xml_spec(
-    $FindBin::Bin . '/../fixed_amqp0-8.xml',
+    RabbitFoot::default_amqp_spec()
 )->connect(
     (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
     timeout => 1,

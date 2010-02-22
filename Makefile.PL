@@ -7,12 +7,13 @@ requires 'MooseX::AttributeHelpers';
 requires 'MooseX::App::Cmd';
 requires 'MooseX::ConfigFromFile';
 requires 'Config::Any';
-requires 'JSON::Syck';
+requires 'JSON::Syck' => '0.88';
 requires 'List::MoreUtils';
 requires 'Net::AMQP';
 requires 'AnyEvent';
 requires 'Coro';
 requires 'Coro::AnyEvent';
+requires 'File::ShareDir';
 
 tests 't/*.t';
 author_tests 'xt';
