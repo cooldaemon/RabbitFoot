@@ -19,6 +19,7 @@ author_tests 'xt';
 
 build_requires 'Test::More';
 build_requires 'Test::Exception';
+install_script 'rabbit_foot';
 use_test_base;
 auto_include;
 WriteAll;
