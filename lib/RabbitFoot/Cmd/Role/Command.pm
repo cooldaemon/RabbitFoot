@@ -1,6 +1,7 @@
 package RabbitFoot::Cmd::Role::Command;
 
 use FindBin;
+use Coro;
 use RabbitFoot;
 
 use Moose::Role;
@@ -114,16 +115,38 @@ sub execute {
     my $self = shift;
     my ($opt, $args,) = @_;
 
-    my $ch = RabbitFoot->new(
+    my $rf = RabbitFoot->new(
         verbose => $self->verbose,
     )->load_xml_spec(
         $self->spec,
     )->connect(
-        timeout => 5,
-        (map {$_ => $self->$_} qw(host port user pass vhost))
-    )->open_channel();
+        (map {$_ => $self->$_} qw(host port user pass vhost)),
+        timeout  => 5,
+        on_close => unblock_sub {
+            $self->_close(shift);
+            exit; # FIXME
+        },
+    );
+
+    my $ch = $rf->open_channel(
+        on_close => unblock_sub {
+            $self->_close(shift);
+            $rf->close;
+            exit;
+        },
+    );
 
     $self->_run($ch, @_,);
+
+    $ch->close;
+    $rf->close;
+    return;
+}
+
+sub _close {
+    my $self = shift;
+    my $method_frame = shift->method_frame;
+    print $method_frame->reply_code, ' ', $method_frame->reply_text, "\n";
     return;
 }
 

@@ -19,6 +19,12 @@ has connection => (
     weak_ref => 1,
 );
 
+has on_close => (
+#   isa      => 'CodeRef',
+    is       => 'rw',
+    required => 1,
+);
+
 has _is_open => (
     isa     => 'Bool',
     is      => 'rw',

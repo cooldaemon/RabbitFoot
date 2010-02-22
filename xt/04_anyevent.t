@@ -41,6 +41,10 @@ $ar->connect(
         $done->send;
     },
     on_failure => failure_cb($done),
+    on_close   => sub {
+        my $method_frame = shift->method_frame;
+        die $method_frame->reply_code, $method_frame->reply_text;
+    },
 );
 $done->recv;
 
@@ -53,6 +57,10 @@ $ar->open_channel(
         $done->send;
     },
     on_failure => failure_cb($done),
+    on_close   => sub {
+        my $method_frame = shift->method_frame;
+        die $method_frame->reply_code, $method_frame->reply_text;
+    },
 );
 $done->recv;
 
