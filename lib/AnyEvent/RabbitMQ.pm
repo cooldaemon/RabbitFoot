@@ -93,14 +93,14 @@ sub _read_loop {
 
         if (length($data) <= 7) {
             $failure_cb->('Broken data was received');
-            @_ = ($self, $failure_cb,);
+            @_ = ($self, $close_cb, $failure_cb,);
             goto &_read_loop;
         }
 
         my ($type_id, $channel, $length,) = unpack 'CnN', substr $data, 0, 7, '';
         if (!defined $type_id || !defined $channel || !defined $length) {
             $failure_cb->('Broken data was received');
-            @_ = ($self, $failure_cb,);
+            @_ = ($self, $close_cb, $failure_cb,);
             goto &_read_loop;
         }
 
@@ -130,7 +130,7 @@ sub _read_loop {
                 }
             }
 
-            @_ = ($self, $failure_cb,);
+            @_ = ($self, $close_cb, $failure_cb,);
             goto &_read_loop;
         });
     });
@@ -368,7 +368,14 @@ sub _push_read_and_valid {
     my ($exp, $cb, $failure_cb, $id,) = @_;
     $exp = ref($exp) eq 'ARRAY' ? $exp : [$exp];
 
-    my $queue = $id ? $self->{_channels}->{$id}->queue : $self->{_queue};
+    my $queue;
+    if (!$id) {
+        $queue = $self->{_queue};
+    } elsif (defined $self->{_channels}->{$id}) {
+        $queue = $self->{_channels}->{$id}->queue;
+    } else {
+        $failure_cb->('Unknown channel id: ' . $id);
+    }
 
     $queue->get(sub {
         my $frame = shift;

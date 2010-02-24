@@ -12,10 +12,11 @@ sub new {
     my $class = shift;
     my $self = bless {
         @_, # id, connection, on_close
-        _is_open      => 0,
-        _queue        => AnyEvent::RabbitMQ::LocalQueue->new,
-        _consumer_cbs => {},
-        _return_cbs   => {},
+        _is_open       => 0,
+        _queue         => AnyEvent::RabbitMQ::LocalQueue->new,
+        _content_queue => AnyEvent::RabbitMQ::LocalQueue->new,
+        _consumer_cbs  => {},
+        _return_cbs    => {},
     }, $class;
     weaken($self->{connection});
     return $self;
@@ -535,9 +536,11 @@ sub push_queue_or_consume {
             $self->_push_read_header_and_body('return', $frame, $cb, $failure_cb);
             return $self;
         }
+        $self->{_queue}->push($frame);
+    } else {
+        $self->{_content_queue}->push($frame);
     }
 
-    $self->{_queue}->push($frame);
     return $self;
 }
 
@@ -546,7 +549,7 @@ sub _push_read_header_and_body {
     my ($type, $frame, $cb, $failure_cb,) = @_;
     my $response = {$type => $frame};
 
-    $self->{_queue}->get(sub{
+    $self->{_content_queue}->get(sub{
         my $frame = shift;
 
         return $failure_cb->('Received data is not header frame')
@@ -561,7 +564,7 @@ sub _push_read_header_and_body {
         $response->{header} = $header_frame;
     });
 
-    $self->{_queue}->get(sub{
+    $self->{_content_queue}->get(sub{
         my $frame = shift;
 
         return $failure_cb->('Received data is not body frame')
