@@ -1,41 +1,32 @@
 package RabbitFoot;
 
+use strict;
+use warnings;
+
 use AnyEvent::RabbitMQ;
 use Coro;
 use Coro::AnyEvent;
 
 use RabbitFoot::Channel;
 
-use Moose;
+our $VERSION = '1.00';
 
-our $VERSION = '0.02';
-
-has verbose => (
-    isa => 'Bool',
-    is  => 'rw',
-);
-
-has _ar => (
-    isa     => 'AnyEvent::RabbitMQ',
-    is      => 'ro',
-);
-
-for my $method (qw(connect close)) {
-    __PACKAGE__->meta->add_method($method, sub {
-        my $self = shift;
-        $self->_do($method, @_);
-        return $self;
-    });
+BEGIN {
+    for my $method (qw(connect close)) {
+        no strict 'refs';
+        *{__PACKAGE__ . '::' . $method} = sub {
+            my $self = shift;
+            $self->_do($method, @_);
+            return $self;
+        };
+    }
 }
 
-__PACKAGE__->meta->make_immutable;
-no Moose;
-
-sub BUILD {
-    my $self = shift;
-    $self->{_ar} = AnyEvent::RabbitMQ->new(
-        verbose => $self->verbose,
-    );
+sub new {
+    my $class = shift;
+    return bless {
+        _ar => AnyEvent::RabbitMQ->new(@_),
+    }, $class;
 }
 
 sub load_xml_spec {
@@ -46,7 +37,7 @@ sub load_xml_spec {
 
 sub open_channel {
     my $self = shift;
-    return RabbitFoot::Channel->new(arc => $self->_do('open_channel', @_));
+    return RabbitFoot::Channel->new(arc => $self->_do('open_channel', @_,));
 }
 
 sub _do {
@@ -58,7 +49,7 @@ sub _do {
     $args{on_success} = sub {$cb->(1, @_);},
     $args{on_failure} = sub {$cb->(0, @_);},
 
-    $self->_ar->$method(%args);
+    $self->{_ar}->$method(%args);
     my ($is_success, @responses) = Coro::rouse_wait;
     die @responses if !$is_success;
     return @responses;

@@ -1,59 +1,45 @@
 package AnyEvent::RabbitMQ::LocalQueue;
 
-use Moose;
-use MooseX::AttributeHelpers;
+use strict;
+use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '1.00';
 
-has _message_queue => (
-    metaclass => 'Collection::Array',
-    is        => 'ro',
-    isa       => 'ArrayRef[Any]',
-    default   => sub {[]},
-    provides  => {
-        push  => '_push_message_queue',
-        shift => '_shift_message_queue',
-        count => '_count_message_queue',
-    },
-);
-
-has _drain_code_queue => (
-    metaclass => 'Collection::Array',
-    is        => 'ro',
-    isa       => 'ArrayRef[CodeRef]',
-    default   => sub {[]},
-    provides  => {
-        push  => '_push_drain_code_queue',
-        shift => '_shift_drain_code_queue',
-        count => '_count_drain_code_queue',
-    },
-);
-
-__PACKAGE__->meta->make_immutable;
-no Moose;
+sub new {
+    my $class = shift;
+    return bless {
+        _message_queue    => [],
+        _drain_code_queue => [],
+    }, $class;
+}
 
 sub push {
     my $self = shift;
-    $self->_push_message_queue(@_);
+
+    CORE::push @{$self->{_message_queue}}, @_;
     return $self->_drain_queue();
 }
 
 sub get {
     my $self = shift;
-    $self->_push_drain_code_queue(@_);
+
+    CORE::push @{$self->{_drain_code_queue}}, @_;
     return $self->_drain_queue();
 }
 
 sub _drain_queue {
     my $self = shift;
 
-    my $count
-        = $self->_count_message_queue < $self->_count_drain_code_queue
-        ? $self->_count_message_queue : $self->_count_drain_code_queue
-        ;
+    my $message_count = scalar @{$self->{_message_queue}};
+    my $drain_code_count = scalar @{$self->{_drain_code_queue}};
+
+    my $count = $message_count < $drain_code_count
+              ? $message_count : $drain_code_count;
 
     for (1 .. $count) {
-        $self->_shift_drain_code_queue->($self->_shift_message_queue);
+        &{shift @{$self->{_drain_code_queue}}}(
+            shift @{$self->{_message_queue}}
+        );
     }
 
     return $self;

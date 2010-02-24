@@ -1,5 +1,8 @@
 package AnyEvent::RabbitMQ;
 
+use strict;
+use warnings;
+
 use Data::Dumper;
 use List::MoreUtils qw(none);
 
@@ -12,62 +15,33 @@ use Net::AMQP::Common qw(:all);
 use AnyEvent::RabbitMQ::Channel;
 use AnyEvent::RabbitMQ::LocalQueue;
 
-use Moose;
-use MooseX::AttributeHelpers;
+our $VERSION = '1.00';
 
-our $VERSION = '0.01';
+sub new {
+    my $class = shift;
+    return bless {
+        verbose   => 0,
+        @_,
+        _is_open  => 0,
+        _queue    => AnyEvent::RabbitMQ::LocalQueue->new,
+        _channels => {},
+    }, $class;
+}
 
-has verbose => (
-    isa => 'Bool',
-    is  => 'rw',
-);
+sub channels {
+    my $self = shift;
+    return $self->{_channels};
+}
 
-has _connect_guard => (
-    isa     => 'Guard',
-    is      => 'ro',
-    clearer => 'clear_connect_guard',
-);
-
-has _handle => (
-    isa     => 'AnyEvent::Handle',
-    is      => 'ro',
-    clearer => 'clear_handle',
-);
-
-has _is_open => (
-    isa     => 'Bool',
-    is      => 'ro',
-    default => 0,
-);
-
-has channels => (
-    metaclass => 'Collection::Hash',
-    is        => 'ro',
-    isa       => 'HashRef[AnyEvent::RabbitMQ::Channel]',
-    default   => sub {{}},
-    provides  => {
-        set    => 'set_channel',
-        get    => 'get_channel',
-        delete => 'delete_channel',
-        keys   => 'channel_ids',
-        count  => 'count_channels',
-    },
-);
-
-has _queue => (
-    isa     => 'AnyEvent::RabbitMQ::LocalQueue',
-    is      => 'ro',
-    default => sub {
-        AnyEvent::RabbitMQ::LocalQueue->new
-    },
-);
-
-__PACKAGE__->meta->make_immutable;
-no Moose;
+sub delete_channel {
+    my $self = shift;
+    my ($id) = @_;
+    return delete $self->{_channels}->{$id};
+}
 
 sub load_xml_spec {
-    my ($self, $file,) = @_;
-    Net::AMQP::Protocol->load_xml_spec($file); # die when fail in this line.
+    my $self = shift;
+    Net::AMQP::Protocol->load_xml_spec(@_); # die when fail in this line.
     return $self;
 }
 
@@ -79,7 +53,7 @@ sub connect {
     $args{on_read_failure} ||= sub {die @_};
     $args{timeout}         ||= 0;
 
-    if ($self->verbose) {
+    if ($self->{verbose}) {
         print STDERR 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
     }
 
@@ -93,7 +67,7 @@ sub connect {
                 fh       => $fh,
                 on_error => sub {
                     my ($handle, $fatal, $message) = @_;
-                    $self->clear_handle;
+                    delete $self->{_handle};
                     $args{on_failure}->($message);
                 }
             );
@@ -111,9 +85,9 @@ sub connect {
 sub _read_loop {
     my ($self, $close_cb, $failure_cb,) = @_;
 
-    return if !$self->_handle;
+    return if !defined $self->{_handle}; # called on_error
 
-    $self->_handle->push_read(chunk => 8, sub {
+    $self->{_handle}->push_read(chunk => 8, sub {
         my $data = $_[1];
         my $stack = $_[1];
 
@@ -130,11 +104,11 @@ sub _read_loop {
             goto &_read_loop;
         }
 
-        $self->_handle->push_read(chunk => $length, sub {
+        $self->{_handle}->push_read(chunk => $length, sub {
             $stack .= $_[1];
             my ($frame) = Net::AMQP->parse_raw_frames(\$stack);
 
-            if ($self->verbose) {
+            if ($self->{verbose}) {
                 print STDERR '[C] <-- [S] ' . Dumper($frame);
                 print STDERR '-----------', "\n";
             }
@@ -146,15 +120,11 @@ sub _read_loop {
 
             if (0 == $id) {
                 return if !$self->_check_close_and_clean($frame, $close_cb, $id,);
-                $self->_queue->push($frame);
+                $self->{_queue}->push($frame);
             } else {
-                my $channel = $self->get_channel($id);
-                if ($channel) {
-                    if (
-                        $self->_check_channel_close_and_clean($frame, $id, $channel)
-                    ) {
-                        $channel->_push_queue_or_consume($frame, $failure_cb);
-                    }
+                my $channel = $self->{_channels}->{$id};
+                if (defined $channel) {
+                    $channel->push_queue_or_consume($frame, $failure_cb);
                 } else {
                     $failure_cb->('Unknown channel id: ' . $frame->channel);
                 }
@@ -169,7 +139,8 @@ sub _read_loop {
 }
 
 sub _check_close_and_clean {
-    my ($self, $frame, $close_cb, $id,) = @_;
+    my $self = shift;
+    my ($frame, $close_cb, $id,) = @_;
 
     return 1 if !$frame->isa('Net::AMQP::Frame::Method');
 
@@ -183,30 +154,15 @@ sub _check_close_and_clean {
     return;
 }
 
-sub _check_channel_close_and_clean {
-    my ($self, $frame, $id, $channel,) = @_;
-
-    return 1 if !$frame->isa('Net::AMQP::Frame::Method');
-
-    my $method_frame = $frame->method_frame;
-    return 1 if !$method_frame->isa('Net::AMQP::Protocol::Channel::Close');
-
-    $self->_push_write(Net::AMQP::Protocol::Channel::CloseOk->new(), $id,);
-    $channel->{_is_open} = 0;
-    $channel->on_close->($frame);
-    $self->delete_channel($id);
-    return;
-}
-
 sub _start {
     my $self = shift;
     my %args = @_;
 
-    if ($self->verbose) {
+    if ($self->{verbose}) {
         print STDERR 'post header', "\n";
     }
 
-    $self->_handle->push_write(Net::AMQP::Protocol->header);
+    $self->{_handle}->push_write(Net::AMQP::Protocol->header);
 
     $self->_push_read_and_valid(
         'Connection::Start',
@@ -311,15 +267,12 @@ sub close {
         return $self;
     };
 
-#   if (0 == $self->count_channels) {
-    if (0 == scalar keys %{$self->channels}) { # FIXME
+    if (0 == scalar keys %{$self->{_channels}}) {
         return $close_cb->();
     }
 
-#    for my $id ($self->channel_ids) {
-    for my $id (keys %{$self->channels}) { # FIXME
-#        $self->get_channel($id)->close(
-         $self->channels->{$id}->close( # FIXME
+    for my $id (keys %{$self->{_channels}}) {
+         $self->{_channels}->{$id}->close(
             on_success => $close_cb,
             on_failure => sub {
                 $close_cb->();
@@ -332,9 +285,10 @@ sub close {
 }
 
 sub _close {
-    my ($self, $cb, $failure_cb,) = @_;
+    my $self = shift;
+    my ($cb, $failure_cb,) = @_;
 
-    return $self if !$self->_is_open || 0 < $self->count_channels;
+    return $self if !$self->{_is_open} || 0 < scalar keys %{$self->{_channels}};
 
     $self->_push_write_and_read(
         'Connection::Close', {}, 'Connection::CloseOk',
@@ -346,12 +300,12 @@ sub _close {
 }
 
 sub _disconnect {
-    my ($self,) = @_;
+    my $self = shift;
 
-    $self->clear_connect_guard;
-    $self->clear_handle;
+    delete $self->{_handle};
+    delete $self->{_connect_guard};
 
-    return;
+    return $self;
 }
 
 sub open_channel {
@@ -362,11 +316,11 @@ sub open_channel {
 
     my $id = $args{id};
     return $args{on_failure}->("Channel id $id is already in use")
-        if $id && $self->get_channel($id);
+        if $id && $self->{_channels}->{$id};
 
     if (!$id) {
         for my $candidate_id (1 .. (2**16 - 1)) { # FIXME
-            next if $self->get_channel($candidate_id);
+            next if defined $self->{_channels}->{$candidate_id};
             $id = $candidate_id;
             last;
         }
@@ -379,7 +333,7 @@ sub open_channel {
         on_close   => $args{on_close},
     );
 
-    $self->set_channel($id => $channel);
+    $self->{_channels}->{$id} = $channel;
 
     $channel->open(
         on_success => sub {
@@ -395,7 +349,8 @@ sub open_channel {
 }
 
 sub _push_write_and_read {
-    my ($self, $method, $args, $exp, $cb, $failure_cb, $id,) = @_;
+    my $self = shift;
+    my ($method, $args, $exp, $cb, $failure_cb, $id,) = @_;
 
     $method = 'Net::AMQP::Protocol::' . $method;
     $self->_push_write(
@@ -409,10 +364,11 @@ sub _push_write_and_read {
 }
 
 sub _push_read_and_valid {
-    my ($self, $exp, $cb, $failure_cb, $id,) = @_;
+    my $self = shift;
+    my ($exp, $cb, $failure_cb, $id,) = @_;
     $exp = ref($exp) eq 'ARRAY' ? $exp : [$exp];
 
-    my $queue = $id ? $self->get_channel($id)->_queue : $self->_queue;
+    my $queue = $id ? $self->{_channels}->{$id}->queue : $self->{_queue};
 
     $queue->get(sub {
         my $frame = shift;
@@ -433,45 +389,20 @@ sub _push_read_and_valid {
     });
 }
 
-sub _push_read {
-    my ($self, $cb, $failure_cb) = @_;
-
-    $self->_handle->push_read(chunk => 8, sub {
-        my $data = $_[1];
-        my $stack = $_[1];
-        return $failure_cb->('Disconnect') if length($data) <= 0;
-
-        my ($type_id, $channel, $length,) = unpack 'CnN', substr $data, 0, 7, '';
-        return $failure_cb->('Broken data was received')
-            if !defined $type_id || !defined $channel || !defined $length;
-
-        $self->_handle->push_read(chunk => $length, sub {
-            $stack .= $_[1];
-            my ($frame) = Net::AMQP->parse_raw_frames(\$stack);
-
-            if ($self->verbose) {
-                print STDERR '[C] <-- [S] ' . Dumper($frame);
-                print STDERR '-----------', "\n";
-            }
-
-            $cb->($frame);
-        });
-    });
-}
-
 sub _push_write {
-    my ($self, $output, $id,) = @_;
+    my $self = shift;
+    my ($output, $id,) = @_;
 
     if ($output->isa('Net::AMQP::Protocol::Base')) {
         $output = $output->frame_wrap;
     }
     $output->channel($id || 0);
 
-    if ($self->verbose) {
+    if ($self->{verbose}) {
         print STDERR '[C] --> [S] ', Dumper($output), "\n";
     }
 
-    $self->_handle->push_write($output->to_raw_frame());
+    $self->{_handle}->push_write($output->to_raw_frame());
     return;
 }
 
@@ -485,9 +416,8 @@ sub _set_cbs {
     return %args;
 }
 
-sub DEMOLISH {
-    my ($self) = @_;
-
+sub DESTROY {
+    my $self = shift;
     $self->close();
     return;
 }
