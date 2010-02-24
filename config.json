@@ -1,7 +1,7 @@
 {
-  host:  'localhost',
-  port:  '5672',
-  user:  'guest',
-  pass:  'guest',
-  vhost: '/'
+  "host":  "localhost",
+  "port":  5672,
+  "user":  "guest",
+  "pass":  "guest",
+  "vhost": "/"
 }

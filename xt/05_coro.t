@@ -2,9 +2,13 @@ use Test::More;
 use Test::Exception;
 
 use FindBin;
-use JSON::Syck;
+use JSON::XS;
 
-my $conf = JSON::Syck::LoadFile($FindBin::Bin . '/../config.json');
+my $json_text;
+open my $fh, '<', $FindBin::Bin . '/../config.json' or die $!;
+{undef $/; $json_text = <$fh>;}
+close $fh;
+my $conf = decode_json($json_text);
 
 eval {
     use IO::Socket::INET;

@@ -7,7 +7,7 @@ requires 'MooseX::AttributeHelpers';
 requires 'MooseX::App::Cmd';
 requires 'MooseX::ConfigFromFile';
 requires 'Config::Any';
-requires 'JSON::Syck' => '0.88';
+requires 'JSON::XS';
 requires 'List::MoreUtils';
 requires 'Net::AMQP';
 requires 'AnyEvent';
