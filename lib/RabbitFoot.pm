@@ -7,6 +7,8 @@ use AnyEvent::RabbitMQ;
 use Coro;
 use Coro::AnyEvent;
 
+use File::ShareDir ();
+
 use RabbitFoot::Channel;
 
 our $VERSION = '1.00';
@@ -33,6 +35,11 @@ sub load_xml_spec {
     my $self = shift;
     $self->{_ar}->load_xml_spec(@_);
     return $self;
+}
+
+sub default_amqp_spec {
+    my $dir = File::ShareDir::module_dir(__PACKAGE__);
+    return "$dir/fixed_amqp0-8.xml";
 }
 
 sub open_channel {

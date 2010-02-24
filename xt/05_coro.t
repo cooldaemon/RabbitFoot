@@ -29,7 +29,7 @@ use RabbitFoot;
 my $rf = RabbitFoot->new();
 
 lives_ok sub {
-    $rf->load_xml_spec($FindBin::Bin . '/../fixed_amqp0-8.xml')
+    $rf->load_xml_spec(RabbitFoot::default_amqp_spec())
 }, 'load xml spec';
  
 lives_ok sub {

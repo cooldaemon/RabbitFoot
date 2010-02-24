@@ -10,7 +10,7 @@ requires qw(_run);
 has spec => (
     isa => 'Str',
     is  => 'rw',
-    default       => $FindBin::Bin . '/fixed_amqp0-8.xml',
+    default       => RabbitFoot::default_amqp_spec(),
     metaclass     => 'MooseX::Getopt::Meta::Attribute',
     cmd_aliases   => 's',
     documentation => 'AMQP specification',
