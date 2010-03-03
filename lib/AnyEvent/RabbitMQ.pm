@@ -183,7 +183,7 @@ sub _start {
                         platform    => 'Perl',
                         product     => __PACKAGE__,
                         information => 'http://d.hatena.ne.jp/cooldaemon/',
-                        version     => '0.01',
+                        version     => __PACKAGE__->VERSION,
                     },
                     mechanism => 'AMQPLAIN',
                     response => {
