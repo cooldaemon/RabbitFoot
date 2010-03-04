@@ -67,7 +67,7 @@ __END__
 
 =head1 NAME
 
-RabbitFoot - An Asynchronous and single channel Perl AMQP client.
+RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
 
 =head1 SYNOPSIS
 
