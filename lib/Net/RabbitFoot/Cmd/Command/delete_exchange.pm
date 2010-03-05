@@ -1,8 +1,8 @@
-package RabbitFoot::Cmd::Command::delete_exchange;
+package Net::RabbitFoot::Cmd::Command::delete_exchange;
 
 use Moose;
 extends qw(MooseX::App::Cmd::Command);
-with qw(RabbitFoot::Cmd::Role::Config RabbitFoot::Cmd::Role::Command);
+with qw(Net::RabbitFoot::Cmd::Role::Config Net::RabbitFoot::Cmd::Role::Command);
 
 has exchange => (
     isa           => 'Str',

@@ -28,12 +28,12 @@ plan skip_all => 'Connection failure: '
 plan tests => 23;
 
 use Coro;
-use RabbitFoot;
+use Net::RabbitFoot;
 
-my $rf = RabbitFoot->new();
+my $rf = Net::RabbitFoot->new();
 
 lives_ok sub {
-    $rf->load_xml_spec(RabbitFoot::default_amqp_spec())
+    $rf->load_xml_spec(Net::RabbitFoot::default_amqp_spec())
 }, 'load xml spec';
  
 lives_ok sub {

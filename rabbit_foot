@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use RabbitFoot::Cmd;
+use Net::RabbitFoot::Cmd;
 
-RabbitFoot::Cmd->run;
+Net::RabbitFoot::Cmd->run;
 

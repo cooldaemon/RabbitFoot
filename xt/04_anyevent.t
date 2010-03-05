@@ -27,13 +27,13 @@ plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
 plan tests => 24;
 
-use RabbitFoot ();
+use Net::RabbitFoot ();
 use AnyEvent::RabbitMQ;
 
 my $ar = AnyEvent::RabbitMQ->new();
 
 lives_ok sub {
-    $ar->load_xml_spec(RabbitFoot::default_amqp_spec())
+    $ar->load_xml_spec(Net::RabbitFoot::default_amqp_spec())
 }, 'load xml spec';
 
 my $done = AnyEvent->condvar;

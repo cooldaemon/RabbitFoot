@@ -1,4 +1,4 @@
-package RabbitFoot::Cmd;
+package Net::RabbitFoot::Cmd;
 
 use Moose;
 extends qw(MooseX::App::Cmd);

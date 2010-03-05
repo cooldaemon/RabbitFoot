@@ -1,4 +1,4 @@
-package RabbitFoot::Cmd::Role::Config;
+package Net::RabbitFoot::Cmd::Role::Config;
 
 use FindBin;
 use Config::Any;

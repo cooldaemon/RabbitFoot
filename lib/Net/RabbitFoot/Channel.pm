@@ -1,4 +1,4 @@
-package RabbitFoot::Channel;
+package Net::RabbitFoot::Channel;
 
 use strict;
 use warnings;

@@ -1,6 +1,6 @@
 use inc::Module::Install;
-name 'RabbitFoot';
-all_from 'lib/RabbitFoot.pm';
+name 'Net-RabbitFoot';
+all_from 'lib/Net/RabbitFoot.pm';
 
 requires 'Moose';
 requires 'MooseX::AttributeHelpers';

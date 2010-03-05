@@ -1,4 +1,4 @@
-package RabbitFoot;
+package Net::RabbitFoot;
 
 use strict;
 use warnings;
@@ -9,7 +9,7 @@ use Coro::AnyEvent;
 
 use File::ShareDir ();
 
-use RabbitFoot::Channel;
+use Net::RabbitFoot::Channel;
 
 our $VERSION = '1.00';
 
@@ -44,7 +44,9 @@ sub default_amqp_spec {
 
 sub open_channel {
     my $self = shift;
-    return RabbitFoot::Channel->new(arc => $self->_do('open_channel', @_,));
+    return Net::RabbitFoot::Channel->new(
+        arc => $self->_do('open_channel', @_,)
+    );
 }
 
 sub _do {
@@ -67,13 +69,13 @@ __END__
 
 =head1 NAME
 
-RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
+Net::RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
 
 =head1 SYNOPSIS
 
-  use RabbitFoot;
+  use Net::RabbitFoot;
 
-  my $rf = RabbitFoot->new()->load_xml_spec(
+  my $rf = Net::RabbitFoot->new()->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
       host    => 'localhosti',
@@ -89,9 +91,9 @@ RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
 
 =head1 DESCRIPTION
 
-RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
+Net::RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
 
-You can use RabbitFoot to -
+You can use Net::RabbitFoot to -
 
   * Declare and delete exchanges
   * Declare, delete, bind and unbind queues
@@ -99,7 +101,7 @@ You can use RabbitFoot to -
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
 
-RabbitFoot is known to work with RabbitMQ versions 1.7.2 and version 0-8 of the AMQP specification.
+Net::RabbitFoot is known to work with RabbitMQ versions 1.7.2 and version 0-8 of the AMQP specification.
 
 =head1 AUTHOR
 
