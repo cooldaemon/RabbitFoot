@@ -1,8 +1,8 @@
-This is Perl module RabbitFoot.
+This is Perl module Net::RabbitFoot.
 
-RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
+Net::RabbitFoot is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
 
-You can use RabbitFoot to -
+You can use Net::RabbitFoot to -
 
   * Declare and delete exchanges
   * Declare, delete, bind and unbind queues
@@ -10,7 +10,7 @@ You can use RabbitFoot to -
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
 
-RabbitFoot is known to work with RabbitMQ versions 1.7.2 and version 0-8 of the AMQP specification.
+Net::RabbitFoot is known to work with RabbitMQ versions 1.7.2 and version 0-8 of the AMQP specification.
 
 INSTALLATION
 
@@ -25,9 +25,9 @@ Then install it:
 
 DOCUMENTATION
 
-RabbitFoot documentation is available as in POD. So you can do:
+Net::RabbitFoot documentation is available as in POD. So you can do:
 
-    % perldoc RabbitFoot
+    % perldoc Net::RabbitFoot
 
 to read the documentation online with your favorite pager.
 

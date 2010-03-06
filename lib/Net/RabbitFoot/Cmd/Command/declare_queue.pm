@@ -1,8 +1,8 @@
-package RabbitFoot::Cmd::Command::declare_queue;
+package Net::RabbitFoot::Cmd::Command::declare_queue;
 
 use Moose;
 extends qw(MooseX::App::Cmd::Command);
-with qw(RabbitFoot::Cmd::Role::Config RabbitFoot::Cmd::Role::Command);
+with qw(Net::RabbitFoot::Cmd::Role::Config Net::RabbitFoot::Cmd::Role::Command);
 
 has queue => (
     isa           => 'Str',

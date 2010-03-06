@@ -1,8 +1,8 @@
-package RabbitFoot::Cmd::Role::Command;
+package Net::RabbitFoot::Cmd::Role::Command;
 
 use FindBin;
 use Coro;
-use RabbitFoot;
+use Net::RabbitFoot;
 
 use Moose::Role;
 requires qw(_run);
@@ -10,7 +10,7 @@ requires qw(_run);
 has spec => (
     isa => 'Str',
     is  => 'rw',
-    default       => RabbitFoot::default_amqp_spec(),
+    default       => Net::RabbitFoot::default_amqp_spec(),
     metaclass     => 'MooseX::Getopt::Meta::Attribute',
     cmd_aliases   => 's',
     documentation => 'AMQP specification',
@@ -115,7 +115,7 @@ sub execute {
     my $self = shift;
     my ($opt, $args,) = @_;
 
-    my $rf = RabbitFoot->new(
+    my $rf = Net::RabbitFoot->new(
         verbose => $self->verbose,
     )->load_xml_spec(
         $self->spec,

@@ -1,8 +1,8 @@
-package RabbitFoot::Cmd::Command::unbind_queue;
+package Net::RabbitFoot::Cmd::Command::bind_queue;
 
 use Moose;
 extends qw(MooseX::App::Cmd::Command);
-with qw(RabbitFoot::Cmd::Role::Config RabbitFoot::Cmd::Role::Command);
+with qw(Net::RabbitFoot::Cmd::Role::Config Net::RabbitFoot::Cmd::Role::Command);
 
 has queue => (
     isa           => 'Str',
@@ -34,7 +34,7 @@ __PACKAGE__->meta->make_immutable;
 no Moose;
 
 sub abstract {
-    return 'unbind queue to an exchange';
+    return 'bind queue to an exchange';
 }
 
 sub _validate_queue {
@@ -62,11 +62,11 @@ sub _validate_routing_key {
 sub _run {
     my ($self, $client, $opt, $args,) = @_;
 
-    my $method_frame = $client->unbind_queue(
+    my $method_frame = $client->bind_queue(
         (map {$_ => $self->$_} qw(queue exchange routing_key))
     )->method_frame;
 
-    print 'Unbound queue to exchange', "\n";
+    print 'Bound queue to exchange', "\n";
     return;
 } 
 

@@ -28,10 +28,10 @@ plan skip_all => 'Connection failure: '
 plan tests => 6;
 
 use Coro;
-use RabbitFoot;
+use Net::RabbitFoot;
 
-my $rf = RabbitFoot->new()->load_xml_spec(
-    RabbitFoot::default_amqp_spec()
+my $rf = Net::RabbitFoot->new()->load_xml_spec(
+    Net::RabbitFoot::default_amqp_spec()
 )->connect(
     (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
     timeout => 1,
@@ -43,7 +43,7 @@ my $done = 0;
 my @queues = map {
     my $queue = 'test_q' . $_;
     my $ch = $rf->open_channel();
-    isa_ok($ch, 'RabbitFoot::Channel');
+    isa_ok($ch, 'Net::RabbitFoot::Channel');
 
     $ch->declare_queue(queue => $queue);
 
