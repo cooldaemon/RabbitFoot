@@ -6,13 +6,14 @@ use warnings;
 use Scalar::Util qw(weaken);
 use AnyEvent::RabbitMQ::LocalQueue;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 sub new {
     my $class = shift;
     my $self = bless {
         @_, # id, connection, on_close
         _is_open       => 0,
+        _is_active     => 0,
         _queue         => AnyEvent::RabbitMQ::LocalQueue->new,
         _content_queue => AnyEvent::RabbitMQ::LocalQueue->new,
         _consumer_cbs  => {},
@@ -31,13 +32,19 @@ sub open {
     my $self = shift;
     my %args = @_;
 
+    if ($self->{_is_open}) {
+        $args{on_failure}->('Channel has already been opened');
+        return $self;
+    }
+
     $self->{connection}->_push_write_and_read(
         'Channel::Open', {}, 'Channel::OpenOk',
         sub {
-            $self->{_is_open} = 1;
+            $self->{_is_open}   = 1;
+            $self->{_is_active} = 1;
             $args{on_success}->();
         },
-        $args{on_failur},
+        $args{on_failure},
         $self->{id},
     );
 
@@ -76,13 +83,15 @@ sub _close {
         'Channel::Close', {}, 'Channel::CloseOk',
         sub {
             $self->{_is_open} = 0;
+            $self->{_is_active} = 0;
             $self->{connection}->delete_channel($self->{id});
             $args{on_success}->();
         },
         sub {
             $self->{_is_open} = 0;
+            $self->{_is_active} = 0;
             $self->{connection}->delete_channel($self->{id});
-            $args{on_failur}->();
+            $args{on_failure}->();
         },
         $self->{id},
     );
@@ -93,6 +102,8 @@ sub _close {
 sub declare_exchange {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Exchange::Declare',
@@ -119,6 +130,8 @@ sub delete_exchange {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     $self->{connection}->_push_write_and_read(
         'Exchange::Delete',
         {
@@ -139,6 +152,8 @@ sub delete_exchange {
 sub declare_queue {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Queue::Declare',
@@ -164,6 +179,8 @@ sub bind_queue {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     $self->{connection}->_push_write_and_read(
         'Queue::Bind',
         {
@@ -184,6 +201,8 @@ sub unbind_queue {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     $self->{connection}->_push_write_and_read(
         'Queue::Unbind',
         {
@@ -202,6 +221,8 @@ sub unbind_queue {
 sub purge_queue {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Queue::Purge',
@@ -222,6 +243,8 @@ sub purge_queue {
 sub delete_queue {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Queue::Delete',
@@ -244,6 +267,8 @@ sub delete_queue {
 sub publish {
     my $self = shift;
     my %args = @_;
+
+    return $self if !$self->{_is_active};
 
     my $header_args = delete $args{header}    || {};
     my $body        = delete $args{body}      || '';
@@ -330,6 +355,8 @@ sub consume {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     my $consumer_cb = delete $args{on_consume} || sub {};
     
     $self->{connection}->_push_write_and_read(
@@ -362,11 +389,17 @@ sub cancel {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
 
-    return $failure_cb->('consumer_tag is not set')
-        if !defined $args{consumer_tag};
+    return $self if !$self->_check_open($failure_cb);
 
-    return $failure_cb->('Unknown consumer_tag')
-        if !$self->{_consumer_cbs}->{$args{consumer_tag}};
+    if (!defined $args{consumer_tag}) {
+        $failure_cb->('consumer_tag is not set');
+        return $self;
+    }
+
+    if (!$self->{_consumer_cbs}->{$args{consumer_tag}}) {
+        $failure_cb->('Unknown consumer_tag');
+        return $self;
+    }
 
     $self->{connection}->_push_write_and_read(
         'Basic::Cancel',
@@ -390,6 +423,8 @@ sub cancel {
 sub get {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Basic::Get',
@@ -416,6 +451,8 @@ sub ack {
     my $self = shift;
     my %args = @_;
 
+    return $self if !$self->_check_open(sub {});
+
     $self->{connection}->_push_write(
         Net::AMQP::Protocol::Basic::Ack->new(
             delivery_tag => 0,
@@ -433,6 +470,8 @@ sub ack {
 sub qos {
     my $self = shift;
     my ($cb, $failure_cb, %args) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Basic::Qos',
@@ -455,6 +494,8 @@ sub recover {
     my $self = shift;
     my %args = @_;
 
+    return $self if !$self->_check_open(sub {});
+
     $self->{connection}->_push_write(
         Net::AMQP::Protocol::Basic::Recover->new(
             requeue => 0,
@@ -470,6 +511,8 @@ sub select_tx {
     my $self = shift;
     my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     $self->{connection}->_push_write_and_read(
         'Tx::Select', {}, 'Tx::SelectOk',
         $cb,
@@ -484,6 +527,8 @@ sub commit_tx {
     my $self = shift;
     my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
 
+    return $self if !$self->_check_open($failure_cb);
+
     $self->{connection}->_push_write_and_read(
         'Tx::Commit', {}, 'Tx::CommitOk',
         $cb,
@@ -497,6 +542,8 @@ sub commit_tx {
 sub rollback_tx {
     my $self = shift;
     my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
+
+    return $self if !$self->_check_open($failure_cb);
 
     $self->{connection}->_push_write_and_read(
         'Tx::Rollback', {}, 'Tx::RollbackOk',
@@ -520,6 +567,7 @@ sub push_queue_or_consume {
                 $self->{id},
             );
             $self->{_is_open} = 0;
+            $self->{_is_active} = 0;
             $self->{connection}->delete_channel($self->{id});
             $self->{on_close}->($frame);
             return $self;
@@ -534,6 +582,15 @@ sub push_queue_or_consume {
                 $method_frame->exchange . '_' . $method_frame->routing_key
             } || sub {};
             $self->_push_read_header_and_body('return', $frame, $cb, $failure_cb);
+            return $self;
+        } elsif ($method_frame->isa('Net::AMQP::Protocol::Channel::Flow')) {
+            $self->{_is_active} = $method_frame->active;
+            $self->{connection}->_push_write(
+                Net::AMQP::Protocol::Channel::FlowOk->new(
+                    active => $method_frame->active,
+                ),
+                $self->{id},
+            );
             return $self;
         }
         $self->{_queue}->push($frame);
@@ -585,6 +642,16 @@ sub _delete_cbs {
     my $failure_cb = delete $args{on_failure} || sub {die @_};
 
     return $cb, $failure_cb, %args;
+}
+
+sub _check_open {
+    my $self = shift;
+    my ($failure_cb) = @_;
+
+    return 1 if $self->{_is_open};
+
+    $failure_cb->('Channel has already been closed');
+    return 0;
 }
 
 sub DESTROY {

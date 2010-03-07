@@ -15,7 +15,7 @@ use Net::AMQP::Common qw(:all);
 use AnyEvent::RabbitMQ::Channel;
 use AnyEvent::RabbitMQ::LocalQueue;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 sub new {
     my $class = shift;
@@ -48,6 +48,11 @@ sub load_xml_spec {
 sub connect {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
+
+    if ($self->{_is_open}) {
+        $args{on_failure}->('Connection has already been opened');
+        return $self;
+    }
 
     $args{on_close}        ||= sub {};
     $args{on_read_failure} ||= sub {die @_};
@@ -183,7 +188,7 @@ sub _start {
                         platform    => 'Perl',
                         product     => __PACKAGE__,
                         information => 'http://d.hatena.ne.jp/cooldaemon/',
-                        version     => '0.01',
+                        version     => '1.01',
                     },
                     mechanism => 'AMQPLAIN',
                     response => {
@@ -253,6 +258,8 @@ sub close {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
 
+    return $self if !$self->{_is_open};
+
     my $close_cb = sub {
         $self->_close(
             sub {
@@ -312,19 +319,26 @@ sub open_channel {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
 
+    return $self if !$self->_check_open($args{on_failure});
+
     $args{on_close} ||= sub {};
 
     my $id = $args{id};
-    return $args{on_failure}->("Channel id $id is already in use")
-        if $id && $self->{_channels}->{$id};
+    if ($id && $self->{_channels}->{$id}) {
+        $args{on_failure}->("Channel id $id is already in use");
+        return $self;
+    }
 
     if (!$id) {
-        for my $candidate_id (1 .. (2**16 - 1)) { # FIXME
+        for my $candidate_id (1 .. (2**16 - 1)) {
             next if defined $self->{_channels}->{$candidate_id};
             $id = $candidate_id;
             last;
         }
-        return $args{on_failure}->('Ran out of channel ids') if !$id;
+        if (!$id) {
+            $args{on_failure}->('Ran out of channel ids');
+            return $self;
+        }
     }
 
     my $channel = AnyEvent::RabbitMQ::Channel->new(
@@ -423,6 +437,16 @@ sub _set_cbs {
     return %args;
 }
 
+sub _check_open {
+    my $self = shift;
+    my ($failure_cb) = @_;
+
+    return 1 if $self->{_is_open};
+
+    $failure_cb->('Connection has already been closed');
+    return 0;
+}
+
 sub DESTROY {
     my $self = shift;
     $self->close();
@@ -482,7 +506,7 @@ AnyEvent::RabbitMQ - An asynchronous and multi channel Perl AMQP client.
 
 =head1 DESCRIPTION
 
-AnyEvent::RabbitMQ is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in a Asynchronous fashion.
+AnyEvent::RabbitMQ is an AMQP(Advanced Message Queuing Protocol) client library, that is intended to allow you to interact with AMQP-compliant message brokers/servers such as RabbitMQ in an asynchronous fashion.
 
 You can use AnyEvent::RabbitMQ to -
 

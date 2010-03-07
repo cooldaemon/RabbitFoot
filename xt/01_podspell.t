@@ -11,3 +11,4 @@ cooldaemon@gmail.com
 RabbitFoot
 AMQP
 RabbitMQ
+multi
