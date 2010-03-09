@@ -1,5 +1,9 @@
 Revision history for Perl extension RabbitFoot
 
+1.01    Sun Mar  7 15:28:46 2010
+        - fix bugs.
+        - support channel.flow.
+
 1.00    Fri Mar  5 11:30:00 2010
         - fix module name.
 
