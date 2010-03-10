@@ -72,9 +72,11 @@ sub connect {
                 fh       => $fh,
                 on_error => sub {
                     my ($handle, $fatal, $message) = @_;
-                    delete $self->{_handle};
-                    $args{on_failure}->($message);
-                }
+
+                    $self->{_is_open} = 0;
+                    $self->_disconnect();
+                    $args{on_close}->($message);
+                },
             );
             $self->_read_loop($args{on_close}, $args{on_read_failure});
             $self->_start(%args,);
@@ -119,12 +121,8 @@ sub _read_loop {
             }
 
             my $id = $frame->channel;
-            return if !$self->_check_close_and_clean(
-                $frame, $close_cb, $failure_cb, $id,
-            );
-
             if (0 == $id) {
-                return if !$self->_check_close_and_clean($frame, $close_cb, $id,);
+                return if !$self->_check_close_and_clean($frame, $close_cb,);
                 $self->{_queue}->push($frame);
             } else {
                 my $channel = $self->{_channels}->{$id};
@@ -145,7 +143,7 @@ sub _read_loop {
 
 sub _check_close_and_clean {
     my $self = shift;
-    my ($frame, $close_cb, $id,) = @_;
+    my ($frame, $close_cb,) = @_;
 
     return 1 if !$frame->isa('Net::AMQP::Frame::Method');
 
