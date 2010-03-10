@@ -55,13 +55,8 @@ sub _do {
     my %args   = @_;
 
     my $cb = Coro::rouse_cb;
-    $args{on_success} = sub {$cb->(1, @_);};
-
-    my $on_failure = sub {$cb->(0, @_);};
-    if (my $previous_cb = $args{on_failure}) {
-        $on_failure = sub { $cb->(0, @_); goto $previous_cb };
-    }
-    $args{on_failure} = $on_failure,
+    $args{on_success} = sub {$cb->(1, @_);},
+    $args{on_failure} = sub {$cb->(0, @_);},
 
     $self->{_ar}->$method(%args);
     my ($is_success, @responses) = Coro::rouse_wait;
