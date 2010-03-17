@@ -55,24 +55,27 @@ sub connect {
     }
 
     $args{on_close}        ||= sub {};
-    $args{on_read_failure} ||= sub {die @_};
+    $args{on_read_failure} ||= sub {warn @_, "\n"};
     $args{timeout}         ||= 0;
 
     if ($self->{verbose}) {
-        print STDERR 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
+        warn 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
     }
 
     $self->{_connect_guard} = AnyEvent::Socket::tcp_connect(
         $args{host},
         $args{port},
         sub {
-            my $fh = shift
-                or return $args{on_failure}->('Error connecting to AMQP Server!');
+            my $fh = shift or return $args{on_failure}->(
+                'Error connecting to AMQP Server: ' . $!
+            );
+
             $self->{_handle} = AnyEvent::Handle->new(
                 fh       => $fh,
                 on_error => sub {
                     my ($handle, $fatal, $message) = @_;
 
+                    $self->{_channels} = {};
                     $self->{_is_open} = 0;
                     $self->_disconnect();
                     $args{on_close}->($message);
@@ -116,8 +119,8 @@ sub _read_loop {
             my ($frame) = Net::AMQP->parse_raw_frames(\$stack);
 
             if ($self->{verbose}) {
-                print STDERR '[C] <-- [S] ' . Dumper($frame);
-                print STDERR '-----------', "\n";
+                warn '[C] <-- [S] ' . Dumper($frame);
+                warn '-----------', "\n";
             }
 
             my $id = $frame->channel;
@@ -151,6 +154,7 @@ sub _check_close_and_clean {
     return 1 if !$method_frame->isa('Net::AMQP::Protocol::Connection::Close');
 
     $self->_push_write(Net::AMQP::Protocol::Connection::CloseOk->new());
+    $self->{_channels} = {};
     $self->{_is_open} = 0;
     $self->_disconnect();
     $close_cb->($frame);
@@ -162,7 +166,7 @@ sub _start {
     my %args = @_;
 
     if ($self->{verbose}) {
-        print STDERR 'post header', "\n";
+        warn 'post header', "\n";
     }
 
     $self->{_handle}->push_write(Net::AMQP::Protocol->header);
@@ -418,7 +422,7 @@ sub _push_write {
     $output->channel($id || 0);
 
     if ($self->{verbose}) {
-        print STDERR '[C] --> [S] ', Dumper($output), "\n";
+        warn '[C] --> [S] ', Dumper($output);
     }
 
     $self->{_handle}->push_write($output->to_raw_frame());
