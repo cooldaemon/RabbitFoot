@@ -395,6 +395,7 @@ sub _push_read_and_valid {
         $failure_cb->('Unknown channel id: ' . $id);
     }
 
+    return unless $queue; # Can go away in global destruction..
     $queue->get(sub {
         my $frame = shift;
 
