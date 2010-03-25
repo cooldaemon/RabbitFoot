@@ -1,5 +1,8 @@
 Revision history for Perl extension RabbitFoot
 
+        - Fix errors in global destruction due to destruction order being
+          random.
+
 1.01    Sun Mar 18 07:21:58 2010
         - fix bugs.
         - support channel.flow.

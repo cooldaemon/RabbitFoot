@@ -281,7 +281,9 @@ sub close {
     }
 
     for my $id (keys %{$self->{_channels}}) {
-         $self->{_channels}->{$id}->close(
+         my $channel = $self->{_channels}->{$id}
+            or next; # Could have already gone away on global destruction..
+         $channel->close(
             on_success => $close_cb,
             on_failure => sub {
                 $close_cb->();
@@ -425,7 +427,8 @@ sub _push_write {
         warn '[C] --> [S] ', Dumper($output);
     }
 
-    $self->{_handle}->push_write($output->to_raw_frame());
+    $self->{_handle}->push_write($output->to_raw_frame())
+        if $self->{_handle}; # Careful - could have gone (global destruction)
     return;
 }
 
