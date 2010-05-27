@@ -260,7 +260,10 @@ sub close {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
 
-    return $self if !$self->{_is_open};
+    if (!$self->{_is_open}) {
+        $args{on_success}->(@_);
+        return $self;
+    }
 
     my $close_cb = sub {
         $self->_close(
