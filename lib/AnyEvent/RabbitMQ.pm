@@ -260,7 +260,10 @@ sub close {
     my $self = shift;
     my %args = $self->_set_cbs(@_);
 
-    return $self if !$self->{_is_open};
+    if (!$self->{_is_open}) {
+        $args{on_success}->(@_);
+        return $self;
+    }
 
     my $close_cb = sub {
         $self->_close(
@@ -395,6 +398,7 @@ sub _push_read_and_valid {
         $failure_cb->('Unknown channel id: ' . $id);
     }
 
+    return unless $queue; # Can go away in global destruction..
     $queue->get(sub {
         my $frame = shift;
 

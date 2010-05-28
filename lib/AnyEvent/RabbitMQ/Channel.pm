@@ -53,7 +53,9 @@ sub open {
 
 sub close {
     my $self = shift;
-    my %args = $self->{connection}->_set_cbs(@_);
+    my $connection = $self->{connection}
+        or return;
+    my %args = $connection->_set_cbs(@_);
 
     return $self if !$self->{_is_open};
 
