@@ -80,6 +80,11 @@ sub connect {
                     $self->_disconnect();
                     $args{on_close}->($message);
                 },
+                on_drain => sub {
+                    my ($handle) = @_;
+                    $self->{drain_condvar}->send
+                        if exists $self->{drain_condvar};
+                },
             );
             $self->_read_loop($args{on_close}, $args{on_read_failure});
             $self->_start(%args,);
@@ -454,6 +459,18 @@ sub _check_open {
 
     $failure_cb->('Connection has already been closed');
     return 0;
+}
+
+sub drain_writes {
+    my ($self, $timeout) = shift;
+    $self->{drain_condvar} = AnyEvent->condvar;
+    if ($timeout) {
+        $self->{drain_timer} = AnyEvent->timer( after => $timeout, sub {
+            $self->{drain_condvar}->croak("Timed out after $timeout");
+        });
+    }
+    $self->{drain_condvar}->recv;
+    delete $self->{drain_timer};
 }
 
 sub DESTROY {
