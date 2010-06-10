@@ -76,6 +76,9 @@ sub connect {
                     my ($handle, $fatal, $message) = @_;
 
                     $self->{_channels} = {};
+                    if (!$self->{_is_open}) {
+                        $args{on_failure}->(@_);
+                    }
                     $self->{_is_open} = 0;
                     $self->_disconnect();
                     $args{on_close}->($message);
