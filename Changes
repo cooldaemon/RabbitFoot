@@ -1,5 +1,7 @@
 Revision history for Perl extension RabbitFoot
 
+        - Do not set reply_to to an empty string in the header frame.
+
 1.02    Wed Jun 30 11:35:32 2010
         - Fix errors in global destruction due to destruction order being
           random.

@@ -325,7 +325,6 @@ sub _header {
                 delivery_mode    => 1,
                 priority         => 1,
                 correlation_id   => '',
-                reply_to         => '',
                 expiration       => '',
                 message_id       => '',
                 timestamp        => time,
