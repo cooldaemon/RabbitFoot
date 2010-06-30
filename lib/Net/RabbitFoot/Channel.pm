@@ -8,7 +8,7 @@ use Coro::AnyEvent;
 
 use AnyEvent::RabbitMQ::Channel;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 BEGIN {
     for my $method (qw(

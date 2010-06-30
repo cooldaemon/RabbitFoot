@@ -3,7 +3,7 @@ package AnyEvent::RabbitMQ::LocalQueue;
 use strict;
 use warnings;
 
-our $VERSION = '1.00';
+our $VERSION = '1.02';
 
 sub new {
     my $class = shift;
