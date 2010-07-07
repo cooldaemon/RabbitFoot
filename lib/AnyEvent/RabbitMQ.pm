@@ -67,7 +67,7 @@ sub connect {
         $args{port},
         sub {
             my $fh = shift or return $args{on_failure}->(
-                'Error connecting to AMQP Server: ' . $!
+                sprintf('Error connecting to AMQP Server %s:%s: %s', $args{host}, $args{port}, $!)
             );
 
             $self->{_handle} = AnyEvent::Handle->new(
