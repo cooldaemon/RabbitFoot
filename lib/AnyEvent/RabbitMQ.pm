@@ -67,7 +67,7 @@ sub connect {
         $args{port},
         sub {
             my $fh = shift or return $args{on_failure}->(
-                'Error connecting to AMQP Server: ' . $!
+                sprintf('Error connecting to AMQP Server %s:%s: %s', $args{host}, $args{port}, $!)
             );
 
             $self->{_handle} = AnyEvent::Handle->new(
@@ -76,6 +76,9 @@ sub connect {
                     my ($handle, $fatal, $message) = @_;
 
                     $self->{_channels} = {};
+                    if (!$self->{_is_open}) {
+                        $args{on_failure}->(@_);
+                    }
                     $self->{_is_open} = 0;
                     $self->_disconnect();
                     $args{on_close}->($message);
