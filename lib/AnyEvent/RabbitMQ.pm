@@ -476,8 +476,13 @@ sub drain_writes {
     delete $self->{drain_timer};
 }
 
+my $is_gd;
+
+END { $is_gd++ };
+
 sub DESTROY {
     my $self = shift;
+    return if $is_gd;
     $self->close();
     return;
 }
