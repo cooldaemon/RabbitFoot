@@ -1,5 +1,4 @@
 use inc::Module::Install;
-require Module::Install::TestBase;
 
 name 'Net-RabbitFoot';
 all_from 'lib/Net/RabbitFoot.pm';
@@ -24,6 +23,5 @@ install_share;
 build_requires 'Test::More';
 build_requires 'Test::Exception';
 install_script 'rabbit_foot';
-use_test_base;
 auto_include;
 WriteAll;
