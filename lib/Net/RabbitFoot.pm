@@ -38,7 +38,7 @@ sub load_xml_spec {
 }
 
 sub default_amqp_spec {
-    my $dir = File::ShareDir::module_dir(__PACKAGE__);
+    my $dir = File::ShareDir::dist_dir("Net-RabbitFoot");
     return "$dir/fixed_amqp0-8.xml";
 }
 
