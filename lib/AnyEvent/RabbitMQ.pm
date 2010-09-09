@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Carp qw/ confess /;
 use List::MoreUtils qw(none);
 
 use AnyEvent::Handle;
@@ -57,6 +58,10 @@ sub connect {
     $args{on_close}        ||= sub {};
     $args{on_read_failure} ||= sub {warn @_, "\n"};
     $args{timeout}         ||= 0;
+
+    for (qw/ host port /) {
+        confess("No $_ passed to connect to") unless $args{$_};
+    }
 
     if ($self->{verbose}) {
         warn 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
