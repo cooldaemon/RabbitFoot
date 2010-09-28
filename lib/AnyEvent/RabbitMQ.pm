@@ -16,6 +16,9 @@ use Net::AMQP::Common qw(:all);
 use AnyEvent::RabbitMQ::Channel;
 use AnyEvent::RabbitMQ::LocalQueue;
 
+use Devel::GlobalDestruction;
+use namespace::clean;
+
 our $VERSION = '1.02';
 
 sub new {
@@ -454,7 +457,7 @@ sub _set_cbs {
     my %args = @_;
 
     $args{on_success} ||= sub {};
-    $args{on_failure} ||= sub {die @_};
+    $args{on_failure} ||= sub { return if in_global_destruction; die @_};
 
     return %args;
 }

@@ -16,6 +16,9 @@ requires 'Coro';
 requires 'Coro::AnyEvent';
 requires 'File::ShareDir';
 
+requires 'Devel::GlobalDestruction';
+requires 'namespace::clean';
+
 tests 't/*.t';
 author_tests 'xt';
 install_share;
