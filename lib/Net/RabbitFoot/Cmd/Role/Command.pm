@@ -114,6 +114,7 @@ sub execute {
     my $self = shift;
     my ($opt, $args,) = @_;
 
+    my $rf_closed = AnyEvent->condvar;
     my $rf = Net::RabbitFoot->new(
         verbose => $self->verbose,
     )->load_xml_spec(
@@ -125,18 +126,19 @@ sub execute {
             my $w; $w = AnyEvent->idle(cb => sub {
                 undef $w;
                 $self->_close(shift);
-                exit; # FIXME
+                $rf_closed->send;
             });
         },
     );
 
+    my $ch_closed = AnyEvent->condvar;
     my $ch = $rf->open_channel(
         on_close => sub {
             my $w; $w = AnyEvent->idle(cb => sub {
                 undef $w;
                 $self->_close(shift);
+                $ch_closed->send;
                 $rf->close;
-                exit;
             });
         },
     );
@@ -145,6 +147,8 @@ sub execute {
 
     $ch->close;
     $rf->close;
+    $ch_closed->recv;
+    $rf_closed->recv;
     return;
 }
 
