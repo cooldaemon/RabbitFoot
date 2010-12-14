@@ -12,8 +12,6 @@ requires 'JSON::XS';
 requires 'List::MoreUtils';
 requires 'Net::AMQP';
 requires 'AnyEvent';
-requires 'Coro';
-requires 'Coro::AnyEvent';
 requires 'File::ShareDir';
 
 requires 'Devel::GlobalDestruction';

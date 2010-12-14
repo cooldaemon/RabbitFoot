@@ -35,7 +35,7 @@ my $rf = Net::RabbitFoot->new();
 lives_ok sub {
     $rf->load_xml_spec(Net::RabbitFoot::default_amqp_spec())
 }, 'load xml spec';
- 
+
 lives_ok sub {
     $rf->connect(
         (map {$_ => $conf->{$_}} qw(host port user pass vhost)),

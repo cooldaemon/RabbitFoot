@@ -3,9 +3,7 @@ package Net::RabbitFoot::Channel;
 use strict;
 use warnings;
 
-use Coro;
-use Coro::AnyEvent;
-
+use AnyEvent;
 use AnyEvent::RabbitMQ::Channel;
 
 our $VERSION = '1.02';
@@ -23,12 +21,12 @@ BEGIN {
             my $self = shift;
             my %args = @_;
 
-            my $cb = Coro::rouse_cb;
-            $args{on_success} = sub {$cb->(1, @_);},
-            $args{on_failure} = sub {$cb->(0, @_);},
+            my $cv = AnyEvent->condvar;
+            $args{on_success} = sub {$cv->send(1, @_);},
+            $args{on_failure} = sub {$cv->send(0, @_);},
 
             $self->{arc}->$method(%args);
-            my ($is_success, @responses) = Coro::rouse_wait;
+            my ($is_success, @responses) = $cv->recv;
             die @responses if !$is_success;
             return $responses[0];
         };

@@ -3,9 +3,8 @@ package Net::RabbitFoot;
 use strict;
 use warnings;
 
+use AnyEvent;
 use AnyEvent::RabbitMQ;
-use Coro;
-use Coro::AnyEvent;
 
 use File::ShareDir ();
 
@@ -54,12 +53,12 @@ sub _do {
     my $method = shift;
     my %args   = @_;
 
-    my $cb = Coro::rouse_cb;
-    $args{on_success} = sub {$cb->(1, @_);},
-    $args{on_failure} = sub {$cb->(0, @_);},
+    my $cv = AnyEvent->condvar;
+    $args{on_success} = sub {$cv->send(1, @_);},
+    $args{on_failure} = sub {$cv->send(0, @_);},
 
     $self->{_ar}->$method(%args);
-    my ($is_success, @responses) = Coro::rouse_wait;
+    my ($is_success, @responses) = $cv->recv;
     die @responses if !$is_success;
     return @responses;
 }

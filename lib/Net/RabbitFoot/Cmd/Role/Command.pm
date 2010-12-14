@@ -1,7 +1,6 @@
 package Net::RabbitFoot::Cmd::Role::Command;
 
 use FindBin;
-use Coro;
 use Net::RabbitFoot;
 
 use Moose::Role;
@@ -122,17 +121,23 @@ sub execute {
     )->connect(
         (map {$_ => $self->$_} qw(host port user pass vhost)),
         timeout  => 5,
-        on_close => unblock_sub {
-            $self->_close(shift);
-            exit; # FIXME
+        on_close => sub {
+            my $w; $w = AnyEvent->idle(cb => sub {
+                undef $w;
+                $self->_close(shift);
+                exit; # FIXME
+            });
         },
     );
 
     my $ch = $rf->open_channel(
-        on_close => unblock_sub {
-            $self->_close(shift);
-            $rf->close;
-            exit;
+        on_close => sub {
+            my $w; $w = AnyEvent->idle(cb => sub {
+                undef $w;
+                $self->_close(shift);
+                $rf->close;
+                exit;
+            });
         },
     );
 
