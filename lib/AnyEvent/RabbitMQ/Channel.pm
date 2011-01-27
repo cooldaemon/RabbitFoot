@@ -662,3 +662,120 @@ sub DESTROY {
 }
 
 1;
+
+1;
+__END__
+
+=head1 NAME
+
+AnyEvent::RabbitMQ::Channel - Abstraction of an AMQP channel.
+
+=head1 SYNOPSIS
+
+    my $ch = $rf->open_channel();
+    $ch->declare_exchange(exchange => 'test_exchange');
+
+=head1 DESRIPTION
+
+=head1 METHODS
+
+=head2 declare_exchange (%args)
+
+Declare an exchange (to publish messages to) on the server.
+
+Arguments:
+
+=over
+
+=item on_success
+
+=item on_failure
+
+=item type
+
+Default 'direct'
+
+=item passive
+
+Default 0
+
+=item durable
+
+Default 0
+
+=item auto_delete
+
+Default 0
+
+=item internal
+
+Default 0
+
+=item exchange
+
+The name of the exchange
+
+=back
+
+=head2 delete_exchange
+
+=head2 declare_queue
+
+=head2 bind_queue
+
+=head2 unbind_queue
+
+=head2 purge_queue
+
+=head2 delete_queue
+
+=head2 publish
+
+=head2 consume
+
+=head2 cancel
+
+=head2 get
+
+Try to get a single message from a queue.
+
+Arguments:
+
+=over
+
+=item queue
+
+Mandatory. Name of the queue to try to recieve a message from.
+
+=item on_success
+
+Will be called either with either a message, or, if the queue is empty,
+a notification that there was nothing to collect from the queue.
+
+=item on_failure
+
+This callback will be called if an error is signaled on this channel.
+
+=back
+
+=head2 ack
+
+=head2 qos
+
+=head2 recover
+
+=head2 select_tx
+
+=head2 commit_tx
+
+=head2 rollback_tx
+
+
+
+=head1 AUTHOR, COPYRIGHT AND LICENSE
+
+See L<AnyEvent::RabbitMQ> for author(s), copyright and license.
+
+=cut
+
+
