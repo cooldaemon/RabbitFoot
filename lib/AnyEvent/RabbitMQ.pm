@@ -564,6 +564,10 @@ AnyEvnet::RabbitMQ is known to work with RabbitMQ versions 1.7.2 and version 0-8
 
 Masahito Ikuta E<lt>cooldaemon@gmail.comE<gt>
 
+=head1 COPYRIGHT
+
+Copyright (c) 2010, the above named author(s).
+
 =head1 SEE ALSO
 
 =head1 LICENSE
