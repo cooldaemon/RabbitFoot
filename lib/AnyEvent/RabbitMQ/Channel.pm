@@ -723,13 +723,55 @@ The name of the exchange
 
 =head2 bind_queue
 
+Binds a queue to an exchange, with a routing key.
+
+Arguments:
+
+=over
+
+=item queue
+
+The name of the queue to bind
+
+=item exchange
+
+The name of the exchange to bind
+
+=item routing_key
+
+The routing key to bind with
+
 =head2 unbind_queue
 
 =head2 purge_queue
 
+Flushes the contents of a queue.
+
 =head2 delete_queue
 
+Deletes a queue. The queue may not have any active consumers.
+
 =head2 publish
+
+Publish a message to an exchange
+
+Arguments:
+
+=over
+
+=item body
+
+The text body of the message to send.
+
+=item exchange
+
+The name of the exchange to send the message to.
+
+=item routing_key
+
+The routing key with which to publish the message.
+
+=back
 
 =head2 consume
 
@@ -815,8 +857,6 @@ This callback will be called if an error is signaled on this channel.
 =head2 commit_tx
 
 =head2 rollback_tx
-
-
 
 =head1 AUTHOR, COPYRIGHT AND LICENSE
 
