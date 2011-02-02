@@ -733,7 +733,53 @@ The name of the exchange
 
 =head2 consume
 
+Subscribe to consume messages from a queue.
+
+Arguments:
+
+=over
+
+=item on_consume
+
+Callback called with an argument of the message which has been consumed.
+
+=item consumer_tag
+
+Identifies this consumer, will be auto-generated if you do not provide it, but you must
+supply a value if you want to be able to later cancel the subscription.
+
+=item on_success
+
+Callback called if the subscription was successfull (before the first message is consumed).
+
+=item on_failure
+
+Callback called if the subscription fails for any reason.
+
+=back
+
 =head2 cancel
+
+Cancel a queue subscription.
+
+Note that the cancellation B<will not> take place at once, and further messages may be
+consumed before the subscription is cancelled. No further messages will be
+consumed after the on_success callback has been called.
+
+Arguments:
+
+=item consumer_tag
+
+Identifies this consumer, needs to be the value supplied when the queue is initially
+consumed from.
+
+=item on_success
+
+Callback called if the subscription was successfully cancelled.
+
+=item on_failure
+
+Callback called if the subscription could not be cancelled for any reason.
 
 =head2 get
 
