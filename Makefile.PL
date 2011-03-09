@@ -23,5 +23,5 @@ install_share;
 build_requires 'Test::More';
 build_requires 'Test::Exception';
 install_script 'rabbit_foot';
-auto_include;
+auto_install;
 WriteAll;
