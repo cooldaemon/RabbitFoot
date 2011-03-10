@@ -330,10 +330,7 @@ sub _close {
 
 sub _disconnect {
     my $self = shift;
-
-    delete $self->{_handle};
-    delete $self->{_connect_guard};
-
+    $self->{_handle}->push_shutdown;
     return $self;
 }
 
