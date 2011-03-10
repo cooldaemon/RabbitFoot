@@ -34,7 +34,7 @@ BEGIN {
         };
     }
 
-    for my $method (qw(publish ack recover)) {
+    for my $method (qw(publish ack recover reject)) {
         no strict 'refs';
         *{__PACKAGE__ . '::' . $method} = sub {
             my $self = shift;

@@ -25,7 +25,7 @@ eval {
 
 plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
-plan tests => 24;
+plan tests => 25;
 
 use Net::RabbitFoot ();
 use AnyEvent::RabbitMQ;
@@ -276,6 +276,40 @@ $ch->consume(
 publish($ch, 'RabbitMQ is powerful.', $done,);
 $done->recv;
 pass('recover');
+
+$done = AnyEvent->condvar;
+my $reject_count = 0;
+$ch->consume(
+    queue      => 'test_q',
+    no_ack     => 0,
+    on_consume => sub {
+        my $response = shift;
+
+        if ( 5 > ++$reject_count ) {
+            $ch->reject(
+                delivery_tag => $response->{deliver}->method_frame->delivery_tag,
+
+                # requeue! Else the server does not deliver the message again to this client.
+                requeue => 1,
+            );
+            return;
+        }
+
+        $ch->ack( delivery_tag => $response->{deliver}->method_frame->delivery_tag );
+
+        $ch->cancel(
+            consumer_tag => $response->{deliver}->method_frame->consumer_tag,
+            on_success   => sub {
+                $done->send;
+            },
+            on_failure => failure_cb($done),
+        );
+    },
+    on_failure => failure_cb($done),
+);
+publish( $ch, 'RabbitMQ is powerful.', $done, );
+$done->recv;
+pass('reject');
 
 $done = AnyEvent->condvar;
 $ch->select_tx(

@@ -508,6 +508,24 @@ sub recover {
     return $self;
 }
 
+sub reject {
+    my $self = shift;
+    my %args = @_;
+
+    return $self if !$self->_check_open( sub { } );
+
+    $self->{connection}->_push_write(
+        Net::AMQP::Protocol::Basic::Reject->new(
+            delivery_tag => 0,
+            requeue      => 0,
+            %args,
+        ),
+        $self->{id},
+    );
+
+    return $self;
+}
+
 sub select_tx {
     my $self = shift;
     my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
