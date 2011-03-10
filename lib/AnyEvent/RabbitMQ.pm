@@ -20,11 +20,12 @@ our $VERSION = '1.02';
 sub new {
     my $class = shift;
     return bless {
-        verbose   => 0,
+        verbose            => 0,
         @_,
-        _is_open  => 0,
-        _queue    => AnyEvent::RabbitMQ::LocalQueue->new,
-        _channels => {},
+        _is_open           => 0,
+        _queue             => AnyEvent::RabbitMQ::LocalQueue->new,
+        _channels          => {},
+        _server_properties => {},
     }, $class;
 }
 
@@ -98,6 +99,10 @@ sub connect {
     );
 
     return $self;
+}
+
+sub server_properties {
+    return shift->{_server_properties};
 }
 
 sub _read_loop {
@@ -191,6 +196,8 @@ sub _start {
             my @locales = split /\s/, $frame->method_frame->locales;
             return $args{on_failure}->('en_US is not found in locales')
                 if none {$_ eq 'en_US'} @locales;
+
+            $self->{_server_properties} = $frame->method_frame->server_properties;
 
             $self->_push_write(
                 Net::AMQP::Protocol::Connection::StartOk->new(
