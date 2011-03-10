@@ -1,6 +1,11 @@
 Revision history for Perl extension RabbitFoot
 
         - Do not set reply_to to an empty string in the header frame.
+        - Implement basic.reject (requires RabbitMQ >= 2.0.0).
+        - Store server properties in the object for easy server product
+          and sever version access.
+        - Shutdown the AnyEvent handle using push_shutdown.
+        - Be more careful in DESTROY blocks.
 
 1.02    Wed Jun 30 11:35:32 2010
         - Fix errors in global destruction due to destruction order being
