@@ -82,10 +82,10 @@ Net::RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
   my $rf = Net::RabbitFoot->new()->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
-      host    => 'localhosti',
+      host    => 'localhost',
       port    => 5672,
       user    => 'guest',
-      port    => 'guest',
+      pass    => 'guest',
       vhost   => '/',
       timeout => 1,
   );
