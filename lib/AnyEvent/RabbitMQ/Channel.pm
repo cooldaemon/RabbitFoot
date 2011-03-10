@@ -675,7 +675,7 @@ sub _check_open {
 
 sub DESTROY {
     my $self = shift;
-    $self->close();
+    $self->close() if defined $self;
     return;
 }
 
