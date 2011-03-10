@@ -31,6 +31,10 @@ sub new {
     }, $class;
 }
 
+sub ar {
+    return shift->{_ar};
+}
+
 sub load_xml_spec {
     my $self = shift;
     $self->{_ar}->load_xml_spec(@_);
