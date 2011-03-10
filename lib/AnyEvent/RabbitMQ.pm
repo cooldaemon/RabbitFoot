@@ -490,7 +490,7 @@ END { $is_gd++ };
 sub DESTROY {
     my $self = shift;
     return if $is_gd;
-    $self->close();
+    $self->close() if defined $self;
     return;
 }
 
