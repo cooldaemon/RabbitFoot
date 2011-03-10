@@ -6,7 +6,7 @@ use warnings;
 use Scalar::Util qw(weaken);
 use AnyEvent::RabbitMQ::LocalQueue;
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 sub new {
     my $class = shift;
