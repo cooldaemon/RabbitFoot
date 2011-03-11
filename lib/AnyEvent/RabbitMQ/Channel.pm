@@ -329,7 +329,7 @@ sub _header {
                 message_id       => '',
                 timestamp        => time,
                 type             => '',
-                user_id          => '',
+                user_id          => $self->{connection}->login_user,
                 app_id           => '',
                 cluster_id       => '',
                 %$args,
@@ -499,7 +499,7 @@ sub recover {
 
     $self->{connection}->_push_write(
         Net::AMQP::Protocol::Basic::Recover->new(
-            requeue => 0,
+            requeue => 1,
             %args,
         ),
         $self->{id},

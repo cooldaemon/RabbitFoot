@@ -20,11 +20,12 @@ our $VERSION = '1.02';
 sub new {
     my $class = shift;
     return bless {
-        verbose   => 0,
+        verbose     => 0,
         @_,
-        _is_open  => 0,
-        _queue    => AnyEvent::RabbitMQ::LocalQueue->new,
-        _channels => {},
+        _is_open    => 0,
+        _queue      => AnyEvent::RabbitMQ::LocalQueue->new,
+        _channels   => {},
+        _login_user => '',
     }, $class;
 }
 
@@ -37,6 +38,11 @@ sub delete_channel {
     my $self = shift;
     my ($id) = @_;
     return delete $self->{_channels}->{$id};
+}
+
+sub login_user {
+    my $self = shift;
+    return $self->{_login_user};
 }
 
 sub load_xml_spec {
@@ -255,7 +261,8 @@ sub _open {
         },
         'Connection::OpenOk', 
         sub {
-            $self->{_is_open} = 1;
+            $self->{_is_open}   = 1;
+            $self->{_login_user} = $args{user};
             $args{on_success}->($self);
         },
         $args{on_failure},
@@ -550,7 +557,7 @@ You can use AnyEvent::RabbitMQ to -
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
 
-AnyEvnet::RabbitMQ is known to work with RabbitMQ versions 1.7.2 and version 0-8 of the AMQP specification.
+AnyEvnet::RabbitMQ is known to work with RabbitMQ versions 2.3.1 and version 0-8 of the AMQP specification.
 
 =head1 AUTHOR
 
