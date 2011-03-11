@@ -662,3 +662,206 @@ sub DESTROY {
 }
 
 1;
+
+1;
+__END__
+
+=head1 NAME
+
+AnyEvent::RabbitMQ::Channel - Abstraction of an AMQP channel.
+
+=head1 SYNOPSIS
+
+    my $ch = $rf->open_channel();
+    $ch->declare_exchange(exchange => 'test_exchange');
+
+=head1 DESRIPTION
+
+=head1 METHODS
+
+=head2 declare_exchange (%args)
+
+Declare an exchange (to publish messages to) on the server.
+
+Arguments:
+
+=over
+
+=item on_success
+
+=item on_failure
+
+=item type
+
+Default 'direct'
+
+=item passive
+
+Default 0
+
+=item durable
+
+Default 0
+
+=item auto_delete
+
+Default 0
+
+=item internal
+
+Default 0
+
+=item exchange
+
+The name of the exchange
+
+=back
+
+=head2 delete_exchange
+
+=head2 declare_queue
+
+=head2 bind_queue
+
+Binds a queue to an exchange, with a routing key.
+
+Arguments:
+
+=over
+
+=item queue
+
+The name of the queue to bind
+
+=item exchange
+
+The name of the exchange to bind
+
+=item routing_key
+
+The routing key to bind with
+
+=head2 unbind_queue
+
+=head2 purge_queue
+
+Flushes the contents of a queue.
+
+=head2 delete_queue
+
+Deletes a queue. The queue may not have any active consumers.
+
+=head2 publish
+
+Publish a message to an exchange
+
+Arguments:
+
+=over
+
+=item body
+
+The text body of the message to send.
+
+=item exchange
+
+The name of the exchange to send the message to.
+
+=item routing_key
+
+The routing key with which to publish the message.
+
+=back
+
+=head2 consume
+
+Subscribe to consume messages from a queue.
+
+Arguments:
+
+=over
+
+=item on_consume
+
+Callback called with an argument of the message which has been consumed.
+
+=item consumer_tag
+
+Identifies this consumer, will be auto-generated if you do not provide it, but you must
+supply a value if you want to be able to later cancel the subscription.
+
+=item on_success
+
+Callback called if the subscription was successfull (before the first message is consumed).
+
+=item on_failure
+
+Callback called if the subscription fails for any reason.
+
+=back
+
+=head2 cancel
+
+Cancel a queue subscription.
+
+Note that the cancellation B<will not> take place at once, and further messages may be
+consumed before the subscription is cancelled. No further messages will be
+consumed after the on_success callback has been called.
+
+Arguments:
+
+=item consumer_tag
+
+Identifies this consumer, needs to be the value supplied when the queue is initially
+consumed from.
+
+=item on_success
+
+Callback called if the subscription was successfully cancelled.
+
+=item on_failure
+
+Callback called if the subscription could not be cancelled for any reason.
+
+=head2 get
+
+Try to get a single message from a queue.
+
+Arguments:
+
+=over
+
+=item queue
+
+Mandatory. Name of the queue to try to recieve a message from.
+
+=item on_success
+
+Will be called either with either a message, or, if the queue is empty,
+a notification that there was nothing to collect from the queue.
+
+=item on_failure
+
+This callback will be called if an error is signaled on this channel.
+
+=back
+
+=head2 ack
+
+=head2 qos
+
+=head2 recover
+
+=head2 select_tx
+
+=head2 commit_tx
+
+=head2 rollback_tx
+
+=head1 AUTHOR, COPYRIGHT AND LICENSE
+
+See L<AnyEvent::RabbitMQ> for author(s), copyright and license.
+
+=cut
+
+

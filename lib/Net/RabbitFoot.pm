@@ -3,9 +3,8 @@ package Net::RabbitFoot;
 use strict;
 use warnings;
 
+use AnyEvent;
 use AnyEvent::RabbitMQ;
-use Coro;
-use Coro::AnyEvent;
 
 use File::ShareDir ();
 
@@ -54,12 +53,12 @@ sub _do {
     my $method = shift;
     my %args   = @_;
 
-    my $cb = Coro::rouse_cb;
-    $args{on_success} = sub {$cb->(1, @_);},
-    $args{on_failure} = sub {$cb->(0, @_);},
+    my $cv = AnyEvent->condvar;
+    $args{on_success} = sub {$cv->send(1, @_);},
+    $args{on_failure} = sub {$cv->send(0, @_);},
 
     $self->{_ar}->$method(%args);
-    my ($is_success, @responses) = Coro::rouse_wait;
+    my ($is_success, @responses) = $cv->recv;
     die @responses if !$is_success;
     return @responses;
 }
@@ -106,6 +105,10 @@ Net::RabbitFoot is known to work with RabbitMQ versions 2.3.1 and version 0-8 of
 =head1 AUTHOR
 
 Masahito Ikuta E<lt>cooldaemon@gmail.comE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2010, the above named author(s).
 
 =head1 SEE ALSO
 

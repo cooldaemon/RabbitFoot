@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Carp qw/ confess /;
 use List::MoreUtils qw(none);
 
 use AnyEvent::Handle;
@@ -14,6 +15,9 @@ use Net::AMQP::Common qw(:all);
 
 use AnyEvent::RabbitMQ::Channel;
 use AnyEvent::RabbitMQ::LocalQueue;
+
+use Devel::GlobalDestruction;
+use namespace::clean;
 
 our $VERSION = '1.02';
 
@@ -63,6 +67,10 @@ sub connect {
     $args{on_close}        ||= sub {};
     $args{on_read_failure} ||= sub {warn @_, "\n"};
     $args{timeout}         ||= 0;
+
+    for (qw/ host port /) {
+        confess("No $_ passed to connect to") unless $args{$_};
+    }
 
     if ($self->{verbose}) {
         warn 'connect to ', $args{host}, ':', $args{port}, '...', "\n";
@@ -456,7 +464,7 @@ sub _set_cbs {
     my %args = @_;
 
     $args{on_success} ||= sub {};
-    $args{on_failure} ||= sub {die @_};
+    $args{on_failure} ||= sub { return if in_global_destruction; die @_};
 
     return %args;
 }
@@ -562,6 +570,10 @@ AnyEvnet::RabbitMQ is known to work with RabbitMQ versions 2.3.1 and version 0-8
 =head1 AUTHOR
 
 Masahito Ikuta E<lt>cooldaemon@gmail.comE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2010, the above named author(s).
 
 =head1 SEE ALSO
 
