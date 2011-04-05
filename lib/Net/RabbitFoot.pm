@@ -10,7 +10,7 @@ use File::ShareDir ();
 
 use Net::RabbitFoot::Channel;
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 BEGIN {
     for my $method (qw(connect close)) {
@@ -28,6 +28,10 @@ sub new {
     return bless {
         _ar => AnyEvent::RabbitMQ->new(@_),
     }, $class;
+}
+
+sub ar {
+    return shift->{_ar};
 }
 
 sub load_xml_spec {
@@ -77,10 +81,10 @@ Net::RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
   my $rf = Net::RabbitFoot->new()->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
-      host    => 'localhosti',
+      host    => 'localhost',
       port    => 5672,
       user    => 'guest',
-      port    => 'guest',
+      pass    => 'guest',
       vhost   => '/',
       timeout => 1,
   );

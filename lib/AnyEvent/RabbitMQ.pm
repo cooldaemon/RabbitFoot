@@ -19,17 +19,18 @@ use AnyEvent::RabbitMQ::LocalQueue;
 use Devel::GlobalDestruction;
 use namespace::clean;
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 sub new {
     my $class = shift;
     return bless {
-        verbose     => 0,
+        verbose            => 0,
         @_,
-        _is_open    => 0,
-        _queue      => AnyEvent::RabbitMQ::LocalQueue->new,
-        _channels   => {},
-        _login_user => '',
+        _is_open           => 0,
+        _queue             => AnyEvent::RabbitMQ::LocalQueue->new,
+        _channels          => {},
+        _login_user        => '',
+        _server_properties => {},
     }, $class;
 }
 
@@ -112,6 +113,10 @@ sub connect {
     );
 
     return $self;
+}
+
+sub server_properties {
+    return shift->{_server_properties};
 }
 
 sub _read_loop {
@@ -205,6 +210,8 @@ sub _start {
             my @locales = split /\s/, $frame->method_frame->locales;
             return $args{on_failure}->('en_US is not found in locales')
                 if none {$_ eq 'en_US'} @locales;
+
+            $self->{_server_properties} = $frame->method_frame->server_properties;
 
             $self->_push_write(
                 Net::AMQP::Protocol::Connection::StartOk->new(
@@ -338,10 +345,7 @@ sub _close {
 
 sub _disconnect {
     my $self = shift;
-
-    delete $self->{_handle};
-    delete $self->{_connect_guard};
-
+    $self->{_handle}->push_shutdown;
     return $self;
 }
 
@@ -498,7 +502,7 @@ END { $is_gd++ };
 sub DESTROY {
     my $self = shift;
     return if $is_gd;
-    $self->close();
+    $self->close() if defined $self;
     return;
 }
 
@@ -518,10 +522,10 @@ AnyEvent::RabbitMQ - An asynchronous and multi channel Perl AMQP client.
   my $ar = AnyEvent::RabbitMQ->new->load_xml_spec(
       '/path/to/amqp0-8.xml',
   )->connect(
-      host       => 'localhosti',
+      host       => 'localhost',
       port       => 5672,
       user       => 'guest',
-      port       => 'guest',
+      pass       => 'guest',
       vhost      => '/',
       timeout    => 1,
       on_success => sub {

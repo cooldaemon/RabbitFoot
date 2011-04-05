@@ -6,7 +6,7 @@ use warnings;
 use Scalar::Util qw(weaken);
 use AnyEvent::RabbitMQ::LocalQueue;
 
-our $VERSION = '1.02';
+our $VERSION = '1.03';
 
 sub new {
     my $class = shift;
@@ -320,18 +320,18 @@ sub _header {
             body_size    => length($body),
             header_frame => Net::AMQP::Protocol::Basic::ContentHeader->new(
                 content_type     => 'application/octet-stream',
-                content_encoding => '',
+                content_encoding => undef,
                 headers          => {},
                 delivery_mode    => 1,
                 priority         => 1,
-                correlation_id   => '',
-                expiration       => '',
-                message_id       => '',
+                correlation_id   => undef,
+                expiration       => undef,
+                message_id       => undef,
                 timestamp        => time,
-                type             => '',
+                type             => undef,
                 user_id          => $self->{connection}->login_user,
-                app_id           => '',
-                cluster_id       => '',
+                app_id           => undef,
+                cluster_id       => undef,
                 %$args,
             ),
         ),
@@ -508,6 +508,24 @@ sub recover {
     return $self;
 }
 
+sub reject {
+    my $self = shift;
+    my %args = @_;
+
+    return $self if !$self->_check_open( sub { } );
+
+    $self->{connection}->_push_write(
+        Net::AMQP::Protocol::Basic::Reject->new(
+            delivery_tag => 0,
+            requeue      => 0,
+            %args,
+        ),
+        $self->{id},
+    );
+
+    return $self;
+}
+
 sub select_tx {
     my $self = shift;
     my ($cb, $failure_cb,) = $self->_delete_cbs(@_);
@@ -657,7 +675,7 @@ sub _check_open {
 
 sub DESTROY {
     my $self = shift;
-    $self->close();
+    $self->close() if defined $self;
     return;
 }
 
