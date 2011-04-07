@@ -30,9 +30,7 @@ plan tests => 6;
 use Coro;
 use Net::RabbitFoot;
 
-my $rf = Net::RabbitFoot->new()->load_xml_spec(
-    Net::RabbitFoot::default_amqp_spec()
-)->connect(
+my $rf = Net::RabbitFoot->new()->load_xml_spec()->connect(
     (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
     timeout => 1,
 );

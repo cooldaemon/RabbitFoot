@@ -3,6 +3,12 @@ use Test::Exception;
 
 use FindBin;
 use JSON::XS;
+use version;
+
+my %server = (
+    product => undef,
+    version => undef,
+);
 
 my $json_text;
 open my $fh, '<', $FindBin::Bin . '/../config.json' or die $!;
@@ -25,7 +31,7 @@ eval {
 
 plan skip_all => 'Connection failure: '
                . $conf->{host} . ':' . $conf->{port} if $@;
-plan tests => 23;
+plan tests => 24;
 
 use Coro;
 use Net::RabbitFoot;
@@ -33,7 +39,7 @@ use Net::RabbitFoot;
 my $rf = Net::RabbitFoot->new();
 
 lives_ok sub {
-    $rf->load_xml_spec(Net::RabbitFoot::default_amqp_spec())
+    $rf->load_xml_spec()
 }, 'load xml spec';
 
 lives_ok sub {
@@ -41,6 +47,8 @@ lives_ok sub {
         (map {$_ => $conf->{$_}} qw(host port user pass vhost)),
         timeout => 1,
     );
+    $server{product} = $rf->server_properties->{product};
+    $server{version} = version->parse($rf->server_properties->{version});
 }, 'connect';
 
 my $ch;
@@ -187,6 +195,43 @@ lives_ok sub {
     schedule while !$done;
     $ch->cancel(consumer_tag => $frame->method_frame->consumer_tag);
 }, 'recover';
+
+# This only works for RabbitMQ >= 2.0.0
+my $can_reject = $server{product} eq 'RabbitMQ' && $server{version} >= version->parse('2.0.0');
+SKIP: {
+    skip 'We need RabbitMQ >= 2.0.0 for the reject test', 1 unless $can_reject;
+    lives_ok sub {
+        my $reject_count = 0;
+        $done = 0;
+        $frame = $ch->consume(
+            queue  => 'test_q',
+            no_ack => 0,
+            on_consume => unblock_sub {
+                my $response = shift;
+
+                if (5 > ++$reject_count) {
+                    $ch->reject(
+                        delivery_tag => $response->{deliver}->method_frame->delivery_tag,
+                        # requeue! Else the server does not deliver the message again to this client.
+                        requeue => 1,
+                    );
+                    return;
+                }
+
+                $ch->ack(
+                    delivery_tag => $response->{deliver}->method_frame->delivery_tag
+                );
+
+                $done = 1;
+                $main->ready;
+                schedule;
+            }
+        );
+        publish($ch, 'RabbitMQ is powerful.');
+        schedule while !$done;
+        $ch->cancel(consumer_tag => $frame->method_frame->consumer_tag);
+    }, 'reject';
+};
 
 lives_ok sub {
     $ch->select_tx();

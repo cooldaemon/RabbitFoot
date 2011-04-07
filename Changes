@@ -1,5 +1,7 @@
 Revision history for Perl extension RabbitFoot
 
+1.03    Thu Apr  7 03:10:37 2011
+        - Separate AnyEvent::RabbitMQ from Net::RabbitFoot.
         - Avoid (additional) issues when in global destruction.
         - Do not set reply_to to an empty string in the header frame.
         - Implement basic.reject (requires RabbitMQ >= 2.0.0).

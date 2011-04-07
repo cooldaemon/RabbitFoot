@@ -9,7 +9,7 @@ requires qw(_run);
 has spec => (
     isa => 'Str',
     is  => 'rw',
-    default       => Net::RabbitFoot::default_amqp_spec(),
+    default       => '',
     metaclass     => 'MooseX::Getopt::Meta::Attribute',
     cmd_aliases   => 's',
     documentation => 'AMQP specification',
