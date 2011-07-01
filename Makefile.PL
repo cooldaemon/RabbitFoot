@@ -10,7 +10,7 @@ requires 'MooseX::ConfigFromFile';
 requires 'Config::Any';
 requires 'JSON::XS';
 requires 'List::MoreUtils';
-requires 'AnyEvent::RabbitMQ';
+requires 'AnyEvent::RabbitMQ' => '1.03';
 requires 'Coro';
 requires 'Coro::AnyEvent';
 
