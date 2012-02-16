@@ -4,7 +4,6 @@ name 'Net-RabbitFoot';
 all_from 'lib/Net/RabbitFoot.pm';
 
 requires 'Moose';
-requires 'MooseX::AttributeHelpers';
 requires 'MooseX::App::Cmd';
 requires 'MooseX::ConfigFromFile';
 requires 'Config::Any';
