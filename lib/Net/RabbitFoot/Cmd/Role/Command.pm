@@ -4,6 +4,7 @@ use FindBin;
 use Net::RabbitFoot;
 
 use Moose::Role;
+use Carp qw/ confess /;
 requires qw(_run);
 
 has spec => (
@@ -123,9 +124,10 @@ sub execute {
         (map {$_ => $self->$_} qw(host port user pass vhost)),
         timeout  => 5,
         on_close => sub {
+            my $reply = shift;
             my $w; $w = AnyEvent->idle(cb => sub {
                 undef $w;
-                $self->_close(shift);
+                $self->_close($reply);
                 $rf_closed->send;
             });
         },
@@ -134,9 +136,10 @@ sub execute {
     my $ch_closed = AnyEvent->condvar;
     my $ch = $rf->open_channel(
         on_close => sub {
+            my $reply = shift;
             my $w; $w = AnyEvent->idle(cb => sub {
                 undef $w;
-                $self->_close(shift);
+                $self->_close($reply);
                 $ch_closed->send;
                 $rf->close;
             });
@@ -153,8 +156,9 @@ sub execute {
 }
 
 sub _close {
-    my $self = shift;
-    my $method_frame = shift->method_frame;
+    my ($self, $reply) = @_;
+    confess "No reply" unless $reply;
+    my $method_frame = $reply->method_frame;
     print $method_frame->reply_code, ' ', $method_frame->reply_text, "\n";
     return;
 }
