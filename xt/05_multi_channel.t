@@ -2,7 +2,7 @@ use Test::More;
 use Test::Exception;
 
 use FindBin;
-use JSON::XS;
+use JSON qw/ decode_json /;
 
 my $json_text;
 open my $fh, '<', $FindBin::Bin . '/../config.json' or die $!;

@@ -2,7 +2,7 @@ use Test::More;
 use Test::Exception;
 
 use FindBin;
-use JSON::XS;
+use JSON qw/ decode_json /;
 use version;
 
 my %server = (
