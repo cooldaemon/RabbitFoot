@@ -52,7 +52,12 @@ lives_ok sub {
 }, 'connect';
 
 my $ch;
-lives_ok sub {$ch = $rf->open_channel();}, 'open channel';
+lives_ok sub {
+    $ch = $rf->open_channel(on_return => unblock_sub {
+         my $response = shift;
+         my $error_message = 'on_return_channel: ' . Dumper($response);
+         die $error_message;
+    },)}, 'open channel';
 
 lives_ok sub {
     $ch->declare_exchange(exchange => 'test_x');
@@ -272,17 +277,18 @@ lives_ok sub {
 }, 'close';
 
 sub publish {
-    my ($ch, $message,) = @_;
+    my ($ch, $message, $confirm) = @_;
 
     $ch->publish(
         exchange    => 'test_x',
         routing_key => 'test_r',
         body        => $message,
-        on_return   => unblock_sub {
-            my $response = shift;
-            my $error_message = 'on_return: ' . Dumper($response);
-            die $error_message;
-        },
+        !$confirm ? () :
+        ( on_return   => unblock_sub {
+             my $response = shift;
+             my $error_message = 'on_return_publish: ' . Dumper($response);
+             die $error_message;
+          } ),
     );
 
     return;
