@@ -15,7 +15,7 @@ BEGIN {
         close
         declare_exchange delete_exchange
         declare_queue bind_queue unbind_queue purge_queue delete_queue
-        consume cancel get qos
+        consume cancel get qos confirm
         select_tx commit_tx rollback_tx
     )) {
         no strict 'refs';
