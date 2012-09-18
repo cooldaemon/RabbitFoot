@@ -14,7 +14,6 @@ requires 'Coro::AnyEvent';
 
 tests 't/*.t';
 author_tests 'xt';
-install_share;
 
 build_requires 'Test::More';
 build_requires 'Test::Exception';
