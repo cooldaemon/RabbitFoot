@@ -7,6 +7,7 @@ requires 'Moose';
 requires 'MooseX::AttributeHelpers';
 requires 'MooseX::App::Cmd';
 requires 'MooseX::ConfigFromFile';
+requires 'MooseX::Getopt';
 requires 'Config::Any';
 requires 'JSON::XS';
 requires 'List::MoreUtils';
