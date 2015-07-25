@@ -40,7 +40,7 @@ my $done = 0;
 
 my @queues = map {
     my $queue = 'test_q' . $_;
-    my $ch = $rf->open_channel();
+    my $ch = $rf->open_channel(on_return => unblock_sub {die Dumper(@_);});
     isa_ok($ch, 'Net::RabbitFoot::Channel');
 
     $ch->declare_queue(queue => $queue);
@@ -81,7 +81,6 @@ sub publish {
         routing_key => $queue,
         body        => $message,
         mandatory   => 1,
-        on_return   => unblock_sub {die Dumper(@_);},
     );
 
     return;
