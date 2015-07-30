@@ -75,6 +75,7 @@ Net::RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
 =head1 SYNOPSIS
 
   use Net::RabbitFoot;
+  use Coro;
 
   my $rf = Net::RabbitFoot->new()->load_xml_spec()->connect(
       host    => 'localhost',
@@ -85,8 +86,21 @@ Net::RabbitFoot - An Asynchronous and multi channel Perl AMQP client.
       timeout => 1,
   );
 
-  my $ch = $rf->open_channel();
+  my $ch = $rf->open_channel(on_return => sub { warn "message went nowhere: ".Dumper(shift) });
   $ch->declare_exchange(exchange => 'test_exchange');
+
+  $ch->publish(...);  # same params as AnyEvent::RabbitMQ
+
+  # confirm mode for 0.9
+  $ch->confirm;
+
+  my $returned;
+  $ch->publish(...,               # normal publish params
+               mandatory => 1,    # if it goes nowhere, return it
+               on_ack => rouse_cb,
+               on_return => sub { $returned = shift });
+  rouse_wait;  # wait for ack
+  die "the message went nowhere" if $returned;
 
 =head1 DESCRIPTION
 
@@ -99,8 +113,13 @@ You can use Net::RabbitFoot to -
   * Set QoS
   * Publish, consume, get, ack and recover messages
   * Select, commit and rollback transactions
+  * Set publish confirm mode and get callbacks on publish ack and return (AMQP 0.9)
 
-Net::RabbitFoot is known to work with RabbitMQ versions 2.3.1 and version 0-8 of the AMQP specification.
+Net::RabbitFoot is known to work with RabbitMQ versions 2.3.1 through 2.7.1 and versions 0-8 and 0-9-1 of the AMQP specification.
+
+=head1 BUGS
+
+Documentation would be nice.
 
 =head1 AUTHOR
 
